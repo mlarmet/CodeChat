@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+
+# VSCode
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+
+# Package
+*.vsix
+
+# Env
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db

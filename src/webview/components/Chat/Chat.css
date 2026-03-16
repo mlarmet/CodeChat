@@ -1,0 +1,18 @@
+#form {
+	flex-shrink: 0;
+
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+
+	padding-bottom: 1rem;
+}
+
+#form #send,
+#form {
+	width: 100%;
+}
+
+#form #message {
+	resize: vertical;
+}
