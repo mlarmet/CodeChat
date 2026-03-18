@@ -1,7 +1,10 @@
 import { useEffect } from "react";
+
+import { useLoginStore } from "store/login.store";
 import { useMessageStore } from "store/message.store";
 
 import Chat from "@/components/Chat/Chat";
+import Login from "@/components/Login/Login";
 import MessageFeed from "@/components/Message/Message";
 
 import "./App.css";
@@ -9,12 +12,23 @@ import "./App.css";
 const App: React.FC = () => {
 	const storeMessage = useMessageStore((state) => state.storeMessage);
 
+	const { isLogged, setIsLogged } = useLoginStore();
+
 	useEffect(() => {
 		const handler = (event: MessageEvent) => {
 			const { command, data }: IMessageEvent = event.data;
 
-			if (command === "postMessage" && data) {
-				storeMessage(data as IMessage);
+			if (!data) return;
+
+			switch (command) {
+				case "pushMessage":
+					storeMessage(data as IMessage);
+					break;
+				case "receiveLogin":
+					setIsLogged(true);
+					break;
+				default:
+					break;
 			}
 		};
 
@@ -24,8 +38,14 @@ const App: React.FC = () => {
 
 	return (
 		<main>
-			<MessageFeed />
-			<Chat />
+			{isLogged ? (
+				<>
+					<MessageFeed />
+					<Chat />
+				</>
+			) : (
+				<Login />
+			)}
 		</main>
 	);
 };

@@ -1,18 +1,18 @@
-#form {
+#chat {
 	flex-shrink: 0;
 
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
 
-	padding-bottom: 1rem;
+	padding: 8px;
 }
 
-#form #send,
-#form {
+#chat #send,
+#chat {
 	width: 100%;
 }
 
-#form #message {
+#chat #message {
 	resize: vertical;
 }

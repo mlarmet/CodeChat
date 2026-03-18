@@ -11,8 +11,7 @@
 	margin-top: auto;
 
 	/* Scrollbar */
-	padding: 0 0.5rem 0 0;
-	margin: 0.5rem 0;
+	padding: 0 0.5rem;
 }
 
 .message-row {
@@ -37,15 +36,14 @@
 
 .message-box {
 	background-color: var(--vscode-chat-requestBubbleBackground);
-	color: var(--vscode-editor-foreground);
-	border-radius: var(--vscode-cornerRadius-medium);
 
-	padding: 0.5rem 0.75rem;
+	border-radius: var(--vscode-cornerRadius-medium);
+	padding: 8px 12px;
 }
 
 .message-box.owner {
-	background-color: var(--vscode-input-background);
-	color: var(--vscode-editor-foreground);
+	background-color: var(--vscode-button-background);
+	color: var(--vscode-strongForeground);
 }
 
 .message-infos {

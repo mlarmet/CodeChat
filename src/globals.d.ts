@@ -7,6 +7,6 @@ interface IMessage {
 }
 
 interface IMessageEvent {
-	command: "sendMessage" | "postMessage" | "error";
+	command: "sendMessage" | "pushMessage" | "sendLogin" | "receiveLogin" | "error";
 	data: unknown;
 }

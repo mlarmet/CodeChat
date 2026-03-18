@@ -1,0 +1,27 @@
+#login,
+#login #login-form {
+	display: flex;
+	align-items: flex-start;
+	justify-content: stretch;
+}
+
+#login {
+	height: 100%;
+	width: 100%;
+}
+
+#login #login-form {
+	flex-direction: column;
+	gap: 6px;
+
+	padding: 4px 8px;
+
+	width: 100%;
+}
+
+/* #login input, */
+#login #send {
+	margin-top: 4px;
+
+	width: 100%;
+}
