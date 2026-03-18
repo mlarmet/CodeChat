@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
-
 import { format } from "date-fns";
 
-import { useMessageStore } from "../../../store/message.store";
+import { useMessageStore } from "store/message.store";
 
 import "./Message.css";
 

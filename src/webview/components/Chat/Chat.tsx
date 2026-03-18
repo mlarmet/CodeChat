@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import vscode from "../../vscode";
+import vscode from "utils/vscode";
 
 import "./Chat.css";
 

@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 
-import logger from "../utils/logger";
+import logger from "utils/logger";
 
 export class WebviewProvider implements vscode.WebviewViewProvider {
 	constructor(private readonly extensionUri: vscode.Uri) {}

@@ -50,7 +50,7 @@ async function main() {
 	// --- Webview React ---
 	const webviewCtx = await esbuild.context({
 		...baseConfig,
-		entryPoints: ["src/webview/views/main.tsx"],
+		entryPoints: ["src/webview/main.tsx"],
 		format: "iife", // navigateur, pas node
 		platform: "browser",
 		outdir: "dist/views",

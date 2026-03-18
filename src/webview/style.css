@@ -1,13 +1,8 @@
+/* Default VSCode style for base components */
 *,
 *::before,
 *::after {
 	box-sizing: border-box;
-}
-
-html,
-body,
-#root {
-	height: 100%;
 }
 
 body {
