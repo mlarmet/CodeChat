@@ -1,20 +1,27 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
 import { useMessageStore } from "store/message.store";
+import { useLoginStore } from "store/login.store";
 
 import Chat from "@/components/Chat/Chat";
 import MessageFeed from "@/components/Message/Message";
+import Login from "@/components/Login/Login";
 
 import "./App.css";
 
 const App: React.FC = () => {
 	const storeMessage = useMessageStore((state) => state.storeMessage);
 
+	const { isLogged, setIsLogged } = useLoginStore();
+
 	useEffect(() => {
 		const handler = (event: MessageEvent) => {
 			const { command, data }: IMessageEvent = event.data;
 
-			if (command === "postMessage" && data) {
+			if (command === "pushMessage" && data) {
 				storeMessage(data as IMessage);
+			} else if (command === "receiveLogin" && data) {
+				setIsLogged(true);
 			}
 		};
 
@@ -24,8 +31,14 @@ const App: React.FC = () => {
 
 	return (
 		<main>
-			<MessageFeed />
-			<Chat />
+			{isLogged ? (
+				<>
+					<MessageFeed />
+					<Chat />
+				</>
+			) : (
+				<Login />
+			)}
 		</main>
 	);
 };

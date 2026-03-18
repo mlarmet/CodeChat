@@ -1,0 +1,28 @@
+#login,
+#login #login-form {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#login {
+	height: 100%;
+	width: 100%;
+}
+
+#login #login-form {
+	flex-direction: column;
+	gap: 1rem;
+
+	padding: 1rem;
+
+	background: var(--vscode-editor-background);
+	border-radius: var(--vscode-cornerRadius-medium);
+
+	width: 50%;
+}
+
+/* #login input, */
+#login #send {
+	width: 100%;
+}

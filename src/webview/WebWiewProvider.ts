@@ -21,8 +21,12 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 					vscode.window.showInformationMessage("Message envoyé !");
 					logger.info(`New message sent: ${JSON.stringify(data || "")}`);
 					break;
+				case "sendLogin":
+					webviewView.webview.postMessage({ command: "receiveLogin", data });
+					logger.info(`Login receive`);
+					break;
 				case "error":
-					vscode.window.showErrorMessage((data as any)?.error || "Une erreur est survenue.");
+					vscode.window.showErrorMessage((data as any) || "Une erreur est survenue.");
 					logger.error(`Error: ${JSON.stringify(data || "")}`);
 					break;
 				default:

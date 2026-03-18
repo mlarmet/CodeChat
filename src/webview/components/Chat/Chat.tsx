@@ -7,7 +7,7 @@ import "./Chat.css";
 export default function Chat() {
 	const [message, setMessage] = useState("");
 
-	const handleMessageSend = (e: React.FormEvent<HTMLFormElement>) => {
+	const handleMessageSend = (e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault();
 
 		const message = {
@@ -21,7 +21,7 @@ export default function Chat() {
 	};
 
 	return (
-		<div id="form">
+		<div id="chat">
 			<form id="message-form" onSubmit={handleMessageSend}>
 				<textarea
 					name="message"
