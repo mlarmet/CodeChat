@@ -3,7 +3,7 @@
 import * as vscode from "vscode";
 
 import logger from "utils/logger.js";
-import { WebviewProvider } from "webview/WebWiewProvider.js";
+import { WebviewProvider } from "./WebWiewProvider.js";
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed

@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
 import { format } from "date-fns";
+import { useEffect, useRef } from "react";
 
+import { useLoginStore } from "store/login.store";
 import { useMessageStore } from "store/message.store";
 
 import "./Message.css";
@@ -25,12 +26,13 @@ export default function MessageFeed() {
 }
 
 interface IMessageProps {
-	message: IMessage;
+	message: IMessageData;
 }
 
 function Message({ message }: IMessageProps) {
-	// TODO : get owner in settings
-	const isOwner = message.author === "MAL";
+	const { username } = useLoginStore();
+
+	const isOwner = message.author === username;
 
 	const getDatetime = () => {
 		const now = new Date();

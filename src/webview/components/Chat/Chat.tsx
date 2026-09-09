@@ -2,16 +2,19 @@ import { useState } from "react";
 
 import vscode from "utils/vscode";
 
+import { useLoginStore } from "store/login.store";
+
 import "./Chat.css";
 
 export default function Chat() {
+	const { username } = useLoginStore();
 	const [message, setMessage] = useState("");
 
 	const handleMessageSend = (e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault();
 
-		const message = {
-			author: "MAL", // TODO : get me in settings
+		const message: IMessageData = {
+			author: username,
 			text: e.currentTarget.message.value,
 			datetime: new Date(),
 		};

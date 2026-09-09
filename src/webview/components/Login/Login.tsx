@@ -12,7 +12,7 @@ export default function Login() {
 	const handleLogin = (e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault();
 
-		const loginData = { username: "MAL", isHost: true, ipClient: "192.168.1.13" };
+		const loginData: ILoginData = { username, isHost, ipClient };
 
 		vscode.postMessage({ command: "sendLogin", data: loginData });
 		setUsername("");
@@ -41,7 +41,8 @@ export default function Login() {
 							name="ip-client"
 							id="ip-client"
 							placeholder="IP"
-							value={ipClient}
+							value={isHost ? "" : ipClient}
+							disabled={isHost}
 							onInput={(e) => setIpClient(e.currentTarget.value)}
 							onChange={(e) => setIpClient(e.currentTarget.value)}
 						/>

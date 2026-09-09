@@ -1,12 +1,18 @@
 declare const APP_NAME: string;
 
-interface IMessage {
+interface IMessageData {
 	text: string;
 	author: string;
 	datetime: Date;
 }
 
 interface IMessageEvent {
-	command: "sendMessage" | "pushMessage" | "sendLogin" | "receiveLogin" | "error";
+	command: "webviewReady" | "sendMessage" | "pushMessage" | "sendLogin" | "receiveLogin" | "error";
 	data: unknown;
+}
+
+interface ILoginData {
+	username: string;
+	ipClient: string;
+	isHost: boolean;
 }

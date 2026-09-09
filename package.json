@@ -2,7 +2,7 @@
 	"name": "codechat",
 	"displayName": "CodeChat",
 	"description": "Local chat with another VSCode",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"publisher": "mlarmet",
 	"engines": {
 		"vscode": "^1.110.0"
@@ -29,7 +29,8 @@
 					"name": "CodeChat",
 					"icon": "resources/icons/comment-discussion.svg",
 					"type": "webview",
-					"when": "true"
+					"when": "true",
+					"retainContextWhenHidden": true
 				}
 			]
 		}
@@ -64,9 +65,11 @@
 		"vite": "^8.0.0"
 	},
 	"dependencies": {
+		"@types/ws": "^8.18.1",
 		"date-fns": "^4.1.0",
 		"react": "^19.2.4",
 		"react-dom": "^19.2.4",
+		"ws": "^8.21.3",
 		"zustand": "^5.0.12"
 	}
 }

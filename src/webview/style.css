@@ -59,11 +59,11 @@ button:focus-visible {
 	outline-offset: 2px;
 }
 
+input:disabled,
 button:disabled {
 	opacity: 0.4;
 	cursor: not-allowed;
 	/* pointer-events: none; */
-	cursor: not-allowed;
 }
 
 /* Secondary */
@@ -114,12 +114,28 @@ select:focus {
 	border-color: var(--vscode-focusBorder);
 }
 
-input[type="checkbox"],
-input[type="radio"] {
+input[type="checkbox"] {
+	position: relative;
 	accent-color: var(--vscode-checkbox-background);
-	width: 14px;
-	height: 14px;
+	width: 16px;
+	height: 16px;
 	cursor: pointer;
+
+	appearance: none;
+}
+
+input[type="checkbox"]:checked {
+	background-color: var(--vscode-checkbox-selectBackground);
+}
+
+input[type="checkbox"]:checked::after {
+	content: "✓";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	display: block;
+	color: var(--vscode-checkbox-foreground);
 }
 
 .list-item {
