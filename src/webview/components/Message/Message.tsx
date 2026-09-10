@@ -30,9 +30,9 @@ interface IMessageProps {
 }
 
 function Message({ message }: IMessageProps) {
-	const { username } = useLoginStore();
+	const { loginData } = useLoginStore();
 
-	const isOwner = message.author === username;
+	const isOwner = message.author === loginData?.username;
 
 	const getDatetime = () => {
 		const now = new Date();

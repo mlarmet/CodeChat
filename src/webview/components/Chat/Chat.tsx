@@ -7,14 +7,14 @@ import { useLoginStore } from "store/login.store";
 import "./Chat.css";
 
 export default function Chat() {
-	const { username } = useLoginStore();
+	const { loginData, remoteConnected } = useLoginStore();
 	const [message, setMessage] = useState("");
 
 	const handleMessageSend = (e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault();
 
 		const message: IMessageData = {
-			author: username,
+			author: loginData!.username,
 			text: e.currentTarget.message.value,
 			datetime: new Date(),
 		};
@@ -24,17 +24,19 @@ export default function Chat() {
 	};
 
 	return (
-		<div id="chat">
+		<div id="chat" className={remoteConnected ? "" : "remote-off"}>
+			<p id="remote-status">{loginData?.isHost ? "En attente de connexion..." : "En attente de la connexion de l'hôte..."}</p>
 			<form id="message-form" onSubmit={handleMessageSend}>
 				<textarea
 					name="message"
 					id="message"
 					placeholder="Message"
+					disabled={!remoteConnected}
 					value={message}
 					onInput={(e) => setMessage(e.currentTarget.value)}
 					onChange={(e) => setMessage(e.currentTarget.value)}
 				/>
-				<button id="send" type="submit" disabled={!message.trim()}>
+				<button id="send" type="submit" disabled={!message.trim() || !remoteConnected}>
 					Envoyer
 				</button>
 			</form>

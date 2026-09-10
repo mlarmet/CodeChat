@@ -1,17 +1,15 @@
 import { create } from "zustand";
 
 type LoginStore = {
-	isLogged: boolean;
-	username: string;
-
-	setUsername: (username: string) => void;
-	setIsLogged: (isLogged: boolean) => void;
+	loginData: ILoginData | null;
+	remoteConnected: boolean;
+	setLoginData: (data: ILoginData) => void;
+	setRemoteConnected: (data: boolean) => void;
 };
 
 export const useLoginStore = create<LoginStore>((set) => ({
-	isLogged: false,
-	username: "",
-
-	setUsername: (name: string) => set(() => ({ username: name })),
-	setIsLogged: (logged: boolean) => set(() => ({ isLogged: logged })),
+	loginData: null,
+	remoteConnected: false,
+	setLoginData: (data: ILoginData) => set(() => ({ loginData: data })),
+	setRemoteConnected: (data: boolean) => set(() => ({ remoteConnected: data })),
 }));

@@ -16,3 +16,14 @@
 #chat #message {
 	resize: vertical;
 }
+
+#chat #remote-status {
+	display: none;
+	padding: 4px;
+	font-size: 11px;
+	color: var(--vscode-charts-orange);
+}
+
+#chat.remote-off #remote-status {
+	display: block;
+}

@@ -1,5 +1,7 @@
 declare const APP_NAME: string;
 
+declare module "*.css";
+
 interface IMessageData {
 	text: string;
 	author: string;
@@ -7,7 +9,7 @@ interface IMessageData {
 }
 
 interface IMessageEvent {
-	command: "webviewReady" | "sendMessage" | "pushMessage" | "sendLogin" | "receiveLogin" | "error";
+	command: "webviewReady" | "sendMessage" | "pushMessage" | "sendLogin" | "receiveLogin" | "peerConnected" | "peerDisconnected" | "error";
 	data: unknown;
 }
 

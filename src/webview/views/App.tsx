@@ -12,9 +12,8 @@ import MessageFeed from "@/components/Message/Message";
 import "./App.css";
 
 const App: React.FC = () => {
-	const storeMessage = useMessageStore((state) => state.storeMessage);
-
-	const { isLogged, setIsLogged, setUsername } = useLoginStore();
+	const { storeMessage, storeAllMessage } = useMessageStore();
+	const { loginData, setLoginData, setRemoteConnected } = useLoginStore();
 
 	useEffect(() => {
 		const handler = (event: MessageEvent) => {
@@ -27,8 +26,14 @@ const App: React.FC = () => {
 					storeMessage(data as IMessageData);
 					break;
 				case "receiveLogin":
-					setUsername(data.username);
-					setIsLogged(true);
+					setLoginData(data.loginData as ILoginData);
+					storeAllMessage(data.messages as IMessageData[]);
+					break;
+				case "peerConnected":
+					setRemoteConnected(true);
+					break;
+				case "peerDisconnected":
+					setRemoteConnected(false);
 					break;
 				default:
 					break;
@@ -44,7 +49,7 @@ const App: React.FC = () => {
 
 	return (
 		<main>
-			{isLogged ? (
+			{loginData ? (
 				<>
 					<MessageFeed />
 					<Chat />

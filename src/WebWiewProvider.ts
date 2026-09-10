@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 
-import { WsClient } from "./socket/WsClient.js";
-import { WsServer } from "./socket/WsServer.js";
+import { ClientEvent, WsClient } from "./socket/WsClient.js";
+import { ServerEvent, WsServer } from "./socket/WsServer.js";
 
 import logger from "utils/logger";
 
@@ -13,6 +13,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 	private webviewView: vscode.WebviewView | null = null;
 
 	private loginData: ILoginData | null = null;
+	private messages: IMessageData[] = [];
 
 	constructor(private readonly extensionUri: vscode.Uri) {}
 
@@ -52,17 +53,20 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 	}
 
 	private restoreState(): void {
-		const username = this.loginData?.username ?? "";
-
 		if (this.server) {
 			if (this.server.isClientConnected()) {
 				this.post("peerConnected", { name: this.server.getClientName() });
-				this.post("receiveLogin", { username });
+				this.sendLoginData();
 			}
 		} else if (this.client?.isConnected()) {
 			this.post("peerConnected", { name: "Host" });
-			this.post("receiveLogin", { username });
+			this.sendLoginData();
 		}
+	}
+
+	private sendLoginData(): void {
+		const logData = { loginData: this.loginData, messages: this.messages };
+		this.post("receiveLogin", logData);
 	}
 
 	// -------------------------
@@ -83,7 +87,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 			this.connectClient(username, ipClient);
 		}
 
-		this.post("receiveLogin", { username });
+		this.sendLoginData();
 	}
 
 	private handleSendMessage(data: IMessageData): void {
@@ -102,31 +106,43 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		}
 	}
 
+	private handlePeerEvent = (event: ServerEvent | ClientEvent): void => {
+		switch (event.type) {
+			case "connected":
+				this.post("receiveLogin", { isHost: false });
+				this.post("peerConnected", { name: "Host" });
+				break;
+			case "disconnected":
+				this.post("peerDisconnected", { name: "Host" });
+				break;
+			case "client_connected":
+				this.post("peerConnected", { name: event.name });
+				break;
+			case "client_disconnected":
+				logger.info(`Client disconnected: ${event.name}`);
+				this.post("peerDisconnected", { name: event.name });
+				break;
+			case "message":
+				logger.info(`Message from ${event.data.author}: ${event.data.text}`);
+				this.post("pushMessage", event.data);
+				this.messages.push(event.data);
+				break;
+			case "error":
+				logger.error(`Error: ${event.message}`);
+				this.post("error", { message: event.message });
+				break;
+			default:
+				logger.error(`Unknown event: ${JSON.stringify(event)}`);
+				break;
+		}
+	};
+
 	// -------------------------
 	// WsServer (host)
 	// -------------------------
 
 	private startServer(hostName: string): void {
-		this.server = new WsServer(hostName, (event) => {
-			switch (event.type) {
-				case "client_connected":
-					logger.info(`Client connected: ${event.name}`);
-					this.post("peerConnected", { name: event.name });
-					break;
-				case "client_disconnected":
-					logger.info(`Client disconnected: ${event.name}`);
-					this.post("peerDisconnected", { name: event.name });
-					break;
-				case "message":
-					logger.info(`Message from ${event.data.author}: ${event.data.text}`);
-					this.post("pushMessage", event.data);
-					break;
-				case "error":
-					logger.error(`WsServer error: ${event.message}`);
-					this.post("error", { message: event.message });
-					break;
-			}
-		});
+		this.server = new WsServer(hostName, this.handlePeerEvent);
 
 		try {
 			this.server.start(PORT);
@@ -144,25 +160,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 	// -------------------------
 
 	private connectClient(clientName: string, ip: string): void {
-		this.client = new WsClient(clientName, (event) => {
-			switch (event.type) {
-				case "connected":
-					logger.info(`Connected to host ${ip}`);
-					break;
-				case "disconnected":
-					logger.info(`Disconnected from host`);
-					this.post("peerDisconnected", { name: "Host" });
-					break;
-				case "message":
-					logger.info(`Message from ${event.data.author}: ${event.data.text}`);
-					this.post("pushMessage", event.data);
-					break;
-				case "error":
-					logger.error(`WsClient error: ${event.message}`);
-					this.post("error", { message: event.message });
-					break;
-			}
-		});
+		this.client = new WsClient(clientName, ip, this.handlePeerEvent);
 
 		this.client.connect(ip, PORT);
 	}
@@ -171,7 +169,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 	// Utilitaires
 	// -------------------------
 
-	private post(command: string, data?: unknown): void {
+	private post(command: IMessageEvent["command"], data?: unknown): void {
 		this.webviewView?.webview.postMessage({ command, data });
 	}
 
@@ -181,6 +179,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		this.client?.disconnect();
 		this.client = null;
 		this.loginData = null;
+		this.messages = [];
 	}
 }
 
