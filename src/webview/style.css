@@ -76,6 +76,12 @@ button.secondary:hover {
 	background: var(--vscode-button-secondaryHoverBackground);
 }
 
+/* Danger */
+button.danger {
+	background: transparent;
+	color: var(--vscode-charts-red);
+}
+
 input,
 textarea {
 	background: var(--vscode-input-background);

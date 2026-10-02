@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import vscode from "utils/vscode";
 
@@ -10,18 +10,23 @@ export default function Chat() {
 	const { loginData, remoteConnected } = useLoginStore();
 	const [message, setMessage] = useState("");
 
-	const handleMessageSend = (e: React.SubmitEvent<HTMLFormElement>) => {
-		e.preventDefault();
+	const handleMessageSend = useCallback(
+		(e: React.SubmitEvent<HTMLFormElement>) => {
+			e.preventDefault();
 
-		const message: IMessageData = {
-			author: loginData!.username,
-			text: e.currentTarget.message.value,
-			datetime: new Date(),
-		};
+			if (!remoteConnected || !loginData) return;
 
-		vscode.postMessage({ command: "sendMessage", data: message });
-		setMessage("");
-	};
+			const message: IMessageData = {
+				author: loginData.username,
+				text: e.currentTarget.message.value,
+				datetime: new Date(),
+			};
+
+			vscode.postMessage({ command: "sendMessage", data: message });
+			setMessage("");
+		},
+		[remoteConnected, loginData],
+	);
 
 	return (
 		<div id="chat" className={remoteConnected ? "" : "remote-off"}>

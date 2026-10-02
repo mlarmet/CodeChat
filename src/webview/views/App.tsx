@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import vscode from "utils/vscode";
 
 import { useLoginStore } from "store/login.store";
 import { useMessageStore } from "store/message.store";
 
+import Actions from "@/components/Actions/Actions";
 import Chat from "@/components/Chat/Chat";
 import Login from "@/components/Login/Login";
 import MessageFeed from "@/components/Message/Message";
@@ -12,8 +13,10 @@ import MessageFeed from "@/components/Message/Message";
 import "./App.css";
 
 const App: React.FC = () => {
-	const { storeMessage, storeAllMessage } = useMessageStore();
-	const { loginData, setLoginData, setRemoteConnected } = useLoginStore();
+	const [logged, setLogged] = useState(false);
+
+	const { storeMessage, storeAllMessage, messages } = useMessageStore();
+	const { setLoginData, setRemoteConnected } = useLoginStore();
 
 	useEffect(() => {
 		const handler = (event: MessageEvent) => {
@@ -28,12 +31,20 @@ const App: React.FC = () => {
 				case "receiveLogin":
 					setLoginData(data.loginData as ILoginData);
 					storeAllMessage(data.messages as IMessageData[]);
+
+					setLogged(true);
 					break;
 				case "peerConnected":
 					setRemoteConnected(true);
 					break;
 				case "peerDisconnected":
 					setRemoteConnected(false);
+					break;
+				case "logout":
+					setLogged(false);
+					setRemoteConnected(false);
+					setLoginData(null);
+					storeAllMessage([]);
 					break;
 				default:
 					break;
@@ -49,8 +60,9 @@ const App: React.FC = () => {
 
 	return (
 		<main>
-			{loginData ? (
+			{logged ? (
 				<>
+					<Actions />
 					<MessageFeed />
 					<Chat />
 				</>

@@ -1,19 +1,42 @@
-import logger from "utils/logger";
 import { WebSocket } from "ws";
 
-export type ClientEvent = { type: "connected" } | { type: "disconnected" } | { type: "message"; data: IMessageData } | { type: "error"; message: string };
+import { PORT } from "../constante.js";
+
+export type ClientEvent =
+	| { type: "connected" }
+	| { type: "reconnecting" }
+	| { type: "disconnected" }
+	| { type: "message"; data: IMessageData }
+	| { type: "error"; message: string };
 
 type WireMessage = { kind: "handshake"; name: string } | { kind: "chat"; data: IMessageData };
 
 export class WsClient {
 	private ws: WebSocket | null = null;
+
+	private ip: string;
 	private clientName: string;
-	private hostName = "Host"; // sera connu si on ajoute handshake retour plus tard
+
+	private reconnectTimer: NodeJS.Timeout | null = null;
+	private shouldReconnect: boolean = true;
+	private reconnectDelay: number = 3000;
+
 	private onEvent: (event: ClientEvent) => void;
 
-	constructor(clientName: string, onEvent: (event: ClientEvent) => void) {
+	constructor(clientName: string, ip: string, onEvent: (event: ClientEvent) => void) {
 		this.clientName = clientName;
+		this.ip = ip;
+
 		this.onEvent = onEvent;
+	}
+
+	private scheduleReconnect(): void {
+		this.reconnectTimer = setTimeout(() => {
+			this.onEvent({ type: "reconnecting" });
+			this.connect(this.ip, PORT);
+			// backoff exponentiel plafonné à 30s
+			this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30_000);
+		}, this.reconnectDelay);
 	}
 
 	connect(ip: string, port: number): void {
@@ -45,13 +68,17 @@ export class WsClient {
 			}
 		});
 
-		this.ws.on("close", () => {
+		this.ws.on("close", (code) => {
 			this.ws = null;
 			this.onEvent({ type: "disconnected" });
+
+			// 1000 = fermeture normale (disconnect() appelé volontairement)
+			if (this.shouldReconnect && code !== 1000) {
+				this.scheduleReconnect();
+			}
 		});
 
 		this.ws.on("error", (err) => {
-			logger.error(`WsClient error: ${err}`);
 			this.onEvent({ type: "error", message: err.message });
 		});
 	}
@@ -70,7 +97,12 @@ export class WsClient {
 	}
 
 	disconnect(): void {
-		this.ws?.close();
+		this.shouldReconnect = false;
+		if (this.reconnectTimer) {
+			clearTimeout(this.reconnectTimer);
+			this.reconnectTimer = null;
+		}
+		this.ws?.close(1000); // code 1000 = volontaire
 		this.ws = null;
 	}
 }

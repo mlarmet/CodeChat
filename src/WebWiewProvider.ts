@@ -5,15 +5,18 @@ import { ServerEvent, WsServer } from "./socket/WsServer.js";
 
 import logger from "utils/logger";
 
-const PORT = 12121;
+import { PORT } from "./constante.js";
 
 export class WebviewProvider implements vscode.WebviewViewProvider {
 	private server: WsServer | null = null;
 	private client: WsClient | null = null;
+
 	private webviewView: vscode.WebviewView | null = null;
 
 	private loginData: ILoginData | null = null;
 	private messages: IMessageData[] = [];
+
+	private unreadCount: number = 0;
 
 	constructor(private readonly extensionUri: vscode.Uri) {}
 
@@ -26,6 +29,12 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		};
 
 		this.webviewView.webview.html = getWebviewContent(this.webviewView.webview, this.extensionUri);
+
+		this.webviewView.onDidChangeVisibility(() => {
+			if (this.webviewView?.visible) {
+				this.clearBadge();
+			}
+		});
 
 		// Messages depuis React
 		this.webviewView.webview.onDidReceiveMessage(({ command, data }: IMessageEvent) => {
@@ -40,6 +49,9 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 					break;
 				case "sendLogin":
 					this.handleLogin(data as ILoginData);
+					break;
+				case "leaveConnection":
+					this.handleLogout();
 					break;
 				case "error":
 					vscode.window.showErrorMessage((data as string) || "Une erreur est survenue.");
@@ -56,10 +68,12 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		if (this.server) {
 			if (this.server.isClientConnected()) {
 				this.post("peerConnected", { name: this.server.getClientName() });
-				this.sendLoginData();
 			}
-		} else if (this.client?.isConnected()) {
-			this.post("peerConnected", { name: "Host" });
+			this.sendLoginData();
+		} else if (this.client) {
+			if (this.client.isConnected()) {
+				this.post("peerConnected", { name: "Host" });
+			}
 			this.sendLoginData();
 		}
 	}
@@ -67,6 +81,32 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 	private sendLoginData(): void {
 		const logData = { loginData: this.loginData, messages: this.messages };
 		this.post("receiveLogin", logData);
+	}
+
+	private async notify(from: string, text: string): Promise<void> {
+		if (this.webviewView?.visible) {
+			return;
+		}
+
+		this.unreadCount++;
+
+		const plural = this.unreadCount > 1 ? "s" : "";
+
+		// Activity bar badge
+		this.webviewView!.badge = {
+			value: this.unreadCount,
+			tooltip: `${this.unreadCount} message${plural} non lu${plural}`,
+		};
+
+		const action = await vscode.window.showInformationMessage(`Message de ${from}`, "Ouvrir");
+		if (action === "Ouvrir") {
+			vscode.commands.executeCommand("CodeChat.view.focus");
+		}
+	}
+
+	private clearBadge(): void {
+		this.unreadCount = 0;
+		this.webviewView!.badge = { value: 0, tooltip: "" };
 	}
 
 	// -------------------------
@@ -90,6 +130,11 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		this.sendLoginData();
 	}
 
+	private handleLogout(): void {
+		this.cleanup();
+		this.post("logout");
+	}
+
 	private handleSendMessage(data: IMessageData): void {
 		try {
 			if (this.server) {
@@ -99,6 +144,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 			}
 
 			this.post("pushMessage", data); // send back to sender
+			this.messages.push(data);
 		} catch (err) {
 			const message = err instanceof Error ? err.message : "Erreur envoi message";
 			vscode.window.showErrorMessage(message);
@@ -108,8 +154,10 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 
 	private handlePeerEvent = (event: ServerEvent | ClientEvent): void => {
 		switch (event.type) {
+			case "reconnecting":
+				logger.info("Reconnecting...");
+				break;
 			case "connected":
-				this.post("receiveLogin", { isHost: false });
 				this.post("peerConnected", { name: "Host" });
 				break;
 			case "disconnected":
@@ -126,6 +174,8 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 				logger.info(`Message from ${event.data.author}: ${event.data.text}`);
 				this.post("pushMessage", event.data);
 				this.messages.push(event.data);
+
+				this.notify(event.data.author, event.data.text);
 				break;
 			case "error":
 				logger.error(`Error: ${event.message}`);
