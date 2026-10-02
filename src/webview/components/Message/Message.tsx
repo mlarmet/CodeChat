@@ -44,9 +44,10 @@ function Message({ message }: IMessageProps) {
 	return (
 		<div className={"message-row" + (isOwner ? " owner" : "")}>
 			<div className="message-block">
-				<p className="message-infos">
-					<strong>{message.author}</strong> - {getDatetime()}
-				</p>
+				<div className="message-infos">
+					<strong>{message.author}</strong>
+					<span>- {getDatetime()}</span>
+				</div>
 				<div className={"message-box" + (isOwner ? " owner" : "")}>
 					<p>{message.text}</p>
 				</div>
