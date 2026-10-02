@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import vscode from "utils/vscode";
 
+import { useLoginStore } from "store/login.store";
 import "./Login.css";
 
 export default function Login() {
+	const { loginData } = useLoginStore();
+
 	const [username, setUsername] = useState("");
 	const [isHost, setIsHost] = useState(true);
 	const [ipClient, setIpClient] = useState("");
@@ -15,10 +18,15 @@ export default function Login() {
 		const loginData: ILoginData = { username, isHost, ipClient };
 
 		vscode.postMessage({ command: "sendLogin", data: loginData });
-		setUsername("");
-		setIsHost(true);
-		setIpClient("");
 	};
+
+	useEffect(() => {
+		if (loginData) {
+			setUsername(loginData.username);
+			setIsHost(loginData.isHost);
+			setIpClient(loginData.ipClient);
+		}
+	}, [loginData]);
 
 	return (
 		<div id="login">

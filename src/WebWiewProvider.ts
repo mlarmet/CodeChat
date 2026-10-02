@@ -5,7 +5,7 @@ import { ServerEvent, WsServer } from "./socket/WsServer.js";
 
 import logger from "utils/logger";
 
-import { PORT } from "./constante.js";
+import { PORT, SETTINGS_KEYS } from "contants.js";
 
 export class WebviewProvider implements vscode.WebviewViewProvider {
 	private server: WsServer | null = null;
@@ -17,18 +17,19 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 	private messages: IMessageData[] = [];
 
 	private unreadCount: number = 0;
+	private wasLogged: boolean = false;
 
-	constructor(private readonly extensionUri: vscode.Uri) {}
+	constructor(private readonly context: vscode.ExtensionContext) {}
 
 	resolveWebviewView(webviewView: vscode.WebviewView) {
 		this.webviewView = webviewView;
 
 		this.webviewView.webview.options = {
 			enableScripts: true,
-			localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, "dist")],
+			localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, "dist")],
 		};
 
-		this.webviewView.webview.html = getWebviewContent(this.webviewView.webview, this.extensionUri);
+		this.webviewView.webview.html = getWebviewContent(this.webviewView.webview, this.context.extensionUri);
 
 		this.webviewView.onDidChangeVisibility(() => {
 			if (this.webviewView?.visible) {
@@ -69,17 +70,26 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 			if (this.server.isClientConnected()) {
 				this.post("peerConnected", { name: this.server.getClientName() });
 			}
-			this.sendLoginData();
 		} else if (this.client) {
 			if (this.client.isConnected()) {
 				this.post("peerConnected", { name: "Host" });
 			}
-			this.sendLoginData();
 		}
+
+		this.restoreLastLoginData();
+		this.sendLoginData();
+	}
+
+	private restoreLastLoginData(): void {
+		const lastAddress = this.context.globalState.get<string>("lastAddress");
+		const lastNickname = this.context.globalState.get<string>("lastNickname");
+		const lastHost = this.context.globalState.get<boolean>("lastHost");
+
+		this.loginData = { username: lastNickname ?? "", isHost: lastHost ?? false, ipClient: lastAddress ?? "" };
 	}
 
 	private sendLoginData(): void {
-		const logData = { loginData: this.loginData, messages: this.messages };
+		const logData = { loginData: this.loginData, messages: this.messages, logged: this.wasLogged };
 		this.post("receiveLogin", logData);
 	}
 
@@ -109,6 +119,16 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		this.webviewView!.badge = { value: 0, tooltip: "" };
 	}
 
+	private isNotificationActive(): boolean {
+		const config = vscode.workspace.getConfiguration(APP_NAME);
+		return config.get<boolean>(SETTINGS_KEYS.notification, true);
+	}
+
+	private getPort(): number {
+		const config = vscode.workspace.getConfiguration(APP_NAME);
+		return config.get<number>(SETTINGS_KEYS.port, PORT);
+	}
+
 	// -------------------------
 	// Handlers
 	// -------------------------
@@ -118,21 +138,28 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 
 		this.loginData = data;
 		const { username, isHost, ipClient } = this.loginData;
+		const port = this.getPort();
+
+		this.context.globalState.update("lastAddress", ipClient);
+		this.context.globalState.update("lastNickname", username);
+		this.context.globalState.update("lastHost", isHost);
 
 		logger.info(`Login: name=${username}, isHost=${isHost}${isHost ? "" : `, ip=${ipClient}`}`);
 
 		if (isHost) {
 			this.startServer(username);
 		} else {
-			this.connectClient(username, ipClient);
+			this.connectClient(username, ipClient, port);
 		}
 
+		this.wasLogged = true;
 		this.sendLoginData();
 	}
 
 	private handleLogout(): void {
 		this.cleanup();
 		this.post("logout");
+		this.wasLogged = false;
 	}
 
 	private handleSendMessage(data: IMessageData): void {
@@ -175,7 +202,9 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 				this.post("pushMessage", event.data);
 				this.messages.push(event.data);
 
-				this.notify(event.data.author, event.data.text);
+				if (this.isNotificationActive()) {
+					this.notify(event.data.author, event.data.text);
+				}
 				break;
 			case "error":
 				logger.error(`Error: ${event.message}`);
@@ -194,9 +223,11 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 	private startServer(hostName: string): void {
 		this.server = new WsServer(hostName, this.handlePeerEvent);
 
+		const port = this.getPort();
+
 		try {
-			this.server.start(PORT);
-			logger.info(`WS server started on port ${PORT}`);
+			this.server.start(port);
+			logger.info(`WS server started on port ${port}`);
 		} catch (err) {
 			const message = err instanceof Error ? err.message : "Impossible de démarrer le serveur";
 			vscode.window.showErrorMessage(message);
@@ -209,8 +240,8 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 	// WsClient (peer)
 	// -------------------------
 
-	private connectClient(clientName: string, ip: string): void {
-		this.client = new WsClient(clientName, ip, this.handlePeerEvent);
+	private connectClient(clientName: string, ip: string, port: number): void {
+		this.client = new WsClient(clientName, ip, port, this.handlePeerEvent);
 
 		this.client.connect(ip, PORT);
 	}

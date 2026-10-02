@@ -11,7 +11,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// This lines of code will only be executed once when your extension is activated
 	logger.info(`${APP_NAME} extension is now active!`);
 
-	const provider = new WebviewProvider(context.extensionUri);
+	const provider = new WebviewProvider(context);
 
 	context.subscriptions.push(vscode.window.registerWebviewViewProvider(`${APP_NAME}.view`, provider));
 }

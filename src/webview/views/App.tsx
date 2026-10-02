@@ -32,7 +32,7 @@ const App: React.FC = () => {
 					setLoginData(data.loginData as ILoginData);
 					storeAllMessage(data.messages as IMessageData[]);
 
-					setLogged(true);
+					setLogged(data.logged);
 					break;
 				case "peerConnected":
 					setRemoteConnected(true);
@@ -43,7 +43,6 @@ const App: React.FC = () => {
 				case "logout":
 					setLogged(false);
 					setRemoteConnected(false);
-					setLoginData(null);
 					storeAllMessage([]);
 					break;
 				default:

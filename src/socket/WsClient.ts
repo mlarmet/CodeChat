@@ -1,7 +1,5 @@
 import { WebSocket } from "ws";
 
-import { PORT } from "../constante.js";
-
 export type ClientEvent =
 	| { type: "connected" }
 	| { type: "reconnecting" }
@@ -15,6 +13,7 @@ export class WsClient {
 	private ws: WebSocket | null = null;
 
 	private ip: string;
+	private port: number;
 	private clientName: string;
 
 	private reconnectTimer: NodeJS.Timeout | null = null;
@@ -23,9 +22,10 @@ export class WsClient {
 
 	private onEvent: (event: ClientEvent) => void;
 
-	constructor(clientName: string, ip: string, onEvent: (event: ClientEvent) => void) {
+	constructor(clientName: string, ip: string, port: number, onEvent: (event: ClientEvent) => void) {
 		this.clientName = clientName;
 		this.ip = ip;
+		this.port = port;
 
 		this.onEvent = onEvent;
 	}
@@ -33,7 +33,7 @@ export class WsClient {
 	private scheduleReconnect(): void {
 		this.reconnectTimer = setTimeout(() => {
 			this.onEvent({ type: "reconnecting" });
-			this.connect(this.ip, PORT);
+			this.connect(this.ip, this.port);
 			// backoff exponentiel plafonné à 30s
 			this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30_000);
 		}, this.reconnectDelay);

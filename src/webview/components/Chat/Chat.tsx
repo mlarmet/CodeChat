@@ -27,17 +27,9 @@ export default function Chat() {
 
 	return (
 		<div id="chat" className={remoteConnected ? "" : "remote-off"}>
-			<p id="remote-status">{loginData?.isHost ? "En attente de connexion..." : "En attente de la connexion de l'hôte..."}</p>
+			<p id="remote-status">En attente de la connexion {loginData?.isHost ? "du client..." : "de l'hôte..."}</p>
 			<form id="message-form" onSubmit={handleMessageSend}>
-				<textarea
-					name="message"
-					id="message"
-					placeholder="Message"
-					disabled={!remoteConnected}
-					value={message}
-					onInput={(e) => setMessage(e.currentTarget.value)}
-					onChange={(e) => setMessage(e.currentTarget.value)}
-				/>
+				<textarea name="message" id="message" placeholder="Message" value={message} onChange={(e) => setMessage(e.currentTarget.value)} />
 				<button id="send" type="submit" disabled={!message.trim() || !remoteConnected}>
 					Envoyer
 				</button>
