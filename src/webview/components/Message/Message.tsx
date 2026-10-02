@@ -18,9 +18,7 @@ export default function MessageFeed() {
 
 	return (
 		<div id="message-container" ref={elementRef}>
-			{messages.map((message, index) => (
-				<Message key={index} message={message} />
-			))}
+			{messages?.length > 0 && messages.map((message, index) => <Message key={index} message={message} />)}
 		</div>
 	);
 }

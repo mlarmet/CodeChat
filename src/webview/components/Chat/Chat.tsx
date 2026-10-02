@@ -13,8 +13,10 @@ export default function Chat() {
 	const handleMessageSend = (e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault();
 
+		if (!remoteConnected || !loginData) return;
+
 		const message: IMessageData = {
-			author: loginData!.username,
+			author: loginData.username,
 			text: e.currentTarget.message.value,
 			datetime: new Date(),
 		};

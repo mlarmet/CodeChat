@@ -1,7 +1,5 @@
 import { create } from "zustand";
 
-const fillData: IMessageData[] = [];
-
 type MessageStore = {
 	messages: IMessageData[];
 	storeMessage: (message: IMessageData) => void;
@@ -9,7 +7,7 @@ type MessageStore = {
 };
 
 export const useMessageStore = create<MessageStore>((set) => ({
-	messages: structuredClone(fillData),
+	messages: [],
 	storeMessage: (data: IMessageData) => set((state) => ({ messages: [...state.messages, data] })),
 	storeAllMessage: (data: IMessageData[]) => set((state) => ({ messages: data })),
 }));

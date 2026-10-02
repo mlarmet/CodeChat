@@ -9,7 +9,17 @@ interface IMessageData {
 }
 
 interface IMessageEvent {
-	command: "webviewReady" | "sendMessage" | "pushMessage" | "sendLogin" | "receiveLogin" | "peerConnected" | "peerDisconnected" | "error";
+	command:
+		| "webviewReady"
+		| "leaveConnection"
+		| "logout"
+		| "sendMessage"
+		| "pushMessage"
+		| "sendLogin"
+		| "receiveLogin"
+		| "peerConnected"
+		| "peerDisconnected"
+		| "error";
 	data: unknown;
 }
 
