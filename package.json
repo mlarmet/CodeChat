@@ -2,7 +2,7 @@
 	"name": "codechat",
 	"displayName": "CodeChat",
 	"description": "Local chat with another VSCode",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"publisher": "mlarmet",
 	"engines": {
 		"vscode": "^1.110.0"
