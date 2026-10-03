@@ -30,7 +30,7 @@ export default function Chat() {
 		<div id="chat">
 			{!remoteConnected && (
 				<div id="remote-status" className="w-100">
-					<p>En attente de la connexion {loginData?.isHost ? "du client..." : "de l'hôte..."}</p>
+					<p>En attente de la connexion {loginData?.isHost ? "d'un client..." : "de l'hôte..."}</p>
 					<VscodeProgressBar></VscodeProgressBar>
 				</div>
 			)}

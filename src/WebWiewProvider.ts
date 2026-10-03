@@ -206,7 +206,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 				break;
 			case "client_disconnected":
 				logger.info(`Client disconnected: ${event.name}`);
-				this.post("peerDisconnected", { name: event.name });
+				this.post(this.server?.isClientConnected() ? "peerConnected" : "peerDisconnected", { name: event.name });
 				break;
 			case "message":
 				logger.info(`Message from ${event.data.author}: ${event.data.text}`);
@@ -254,7 +254,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 	private connectClient(clientName: string, ip: string, port: number): void {
 		this.client = new WsClient(clientName, ip, port, this.handlePeerEvent);
 
-		this.client.connect(ip, PORT);
+		this.client.connect(ip, port);
 	}
 
 	// -------------------------

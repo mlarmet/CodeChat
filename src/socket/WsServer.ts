@@ -17,7 +17,7 @@ interface ConnectedClient {
 
 export class WsServer {
 	private wss: WebSocketServer | null = null;
-	private client: ConnectedClient | null = null; // 1 seul client attendu
+	private clients = new Map<WebSocket, ConnectedClient>();
 	private hostName: string;
 	private onEvent: (event: ServerEvent) => void;
 
@@ -34,13 +34,8 @@ export class WsServer {
 		this.wss = new WebSocketServer({ port });
 
 		this.wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
-			// On refuse une deuxième connexion
-			if (this.client) {
-				ws.close(1008, "Already connected");
-				return;
-			}
-
 			let clientName = "Unknown";
+			let isRegistered = false;
 
 			ws.on("message", (raw) => {
 				let msg: WireMessage;
@@ -52,20 +47,28 @@ export class WsServer {
 				}
 
 				if (msg.kind === "handshake") {
+					if (isRegistered) {
+						return;
+					}
+
 					clientName = msg.name;
-					this.client = { ws, name: clientName };
+					isRegistered = true;
+					this.clients.set(ws, { ws, name: clientName });
 					this.onEvent({ type: "client_connected", name: clientName });
 					return;
 				}
 
-				if (msg.kind === "chat") {
+				if (msg.kind === "chat" && isRegistered) {
+					this.broadcast(msg.data, ws);
 					this.onEvent({ type: "message", data: msg.data });
 				}
 			});
 
 			ws.on("close", () => {
-				this.client = null;
-				this.onEvent({ type: "client_disconnected", name: clientName });
+				if (isRegistered) {
+					this.clients.delete(ws);
+					this.onEvent({ type: "client_disconnected", name: clientName });
+				}
 			});
 
 			ws.on("error", (err) => {
@@ -78,14 +81,11 @@ export class WsServer {
 		});
 	}
 
-	/** Envoyer un message de l'host vers le client connecté */
+	/** Diffuse un message de l'host à tous les clients connectés. */
 	send(data: IMessageData): void {
-		if (!this.client) {
+		if (this.broadcast(data) === 0) {
 			throw new Error("No client connected");
 		}
-
-		const msg: WireMessage = { kind: "chat", data };
-		this.client.ws.send(JSON.stringify(msg));
 	}
 
 	/** Nom de l'host (utile pour l'affichage côté panel) */
@@ -94,17 +94,36 @@ export class WsServer {
 	}
 
 	isClientConnected(): boolean {
-		return this.client !== null;
+		return this.clients.size > 0;
 	}
 
 	getClientName(): string | null {
-		return this.client?.name ?? null;
+		return this.clients.values().next().value?.name ?? null;
 	}
 
 	stop(): void {
-		this.client?.ws.close();
-		this.client = null;
+		for (const { ws } of this.clients.values()) {
+			ws.close();
+		}
+		this.clients.clear();
 		this.wss?.close();
 		this.wss = null;
+	}
+
+	private broadcast(data: IMessageData, excludedClient?: WebSocket): number {
+		const message: WireMessage = { kind: "chat", data };
+		const raw = JSON.stringify(message);
+		let recipientCount = 0;
+
+		for (const ws of this.clients.keys()) {
+			if (ws === excludedClient || ws.readyState !== WebSocket.OPEN) {
+				continue;
+			}
+
+			ws.send(raw);
+			recipientCount++;
+		}
+
+		return recipientCount;
 	}
 }
