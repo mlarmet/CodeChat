@@ -17,12 +17,15 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 	private messages: IMessageData[] = [];
 
 	private unreadCount: number = 0;
-	private wasLogged: boolean = false;
+
+	wasLogged: boolean = false;
 
 	constructor(private readonly context: vscode.ExtensionContext) {}
 
 	resolveWebviewView(webviewView: vscode.WebviewView) {
 		this.webviewView = webviewView;
+
+		vscode.commands.executeCommand("setContext", "CodeChat.logged", this.wasLogged);
 
 		this.webviewView.webview.options = {
 			enableScripts: true,
@@ -94,7 +97,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		this.post("receiveLogin", logData);
 	}
 
-	private async notify(from: string, text: string): Promise<void> {
+	private async notify(from: string): Promise<void> {
 		if (this.webviewView?.visible) {
 			return;
 		}
@@ -154,13 +157,20 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		}
 
 		this.wasLogged = true;
+		vscode.commands.executeCommand("setContext", "CodeChat.logged", this.wasLogged);
 		this.sendLoginData();
 	}
 
-	private handleLogout(): void {
+	handleLogout(): void {
 		this.cleanup();
 		this.post("logout");
 		this.wasLogged = false;
+		vscode.commands.executeCommand("setContext", "CodeChat.logged", this.wasLogged);
+	}
+
+	handleClearMessages(): void {
+		this.messages = [];
+		this.post("clearMessages");
 	}
 
 	private handleSendMessage(data: IMessageData): void {
@@ -204,7 +214,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 				this.messages.push(event.data);
 
 				if (this.isNotificationActive()) {
-					this.notify(event.data.author, event.data.text);
+					this.notify(event.data.author);
 				}
 				break;
 			case "error":

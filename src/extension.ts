@@ -18,6 +18,47 @@ export function activate(context: vscode.ExtensionContext) {
 			webviewOptions: { retainContextWhenHidden: true },
 		}),
 	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand(`${APP_NAME}.clearMessages`, async () => {
+			if (provider.wasLogged === false) {
+				vscode.window.showInformationMessage("Vous devez être connecté pour effectuer cette action.");
+				return;
+			}
+
+			const confirm = await vscode.window.showWarningMessage(
+				"Voulez-vous supprimer tous les messages ?",
+				{
+					modal: true,
+					detail: "Les messages seront supprimés uniquement pour vous.",
+				},
+				"Supprimer",
+			);
+
+			if (confirm === "Supprimer") {
+				provider.handleClearMessages();
+			}
+		}),
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand(`${APP_NAME}.logout`, async () => {
+			if (provider.wasLogged === false) {
+				vscode.window.showInformationMessage("Vous devez être connecté pour effectuer cette action.");
+				return;
+			}
+
+			const confirm = await vscode.window.showWarningMessage(
+				"Voulez-vous vraiment quitter la conversation ?",
+				{ modal: true, detail: "Tous les messages seront supprimés." },
+				"Quitter",
+			);
+
+			if (confirm === "Quitter") {
+				provider.handleLogout();
+			}
+		}),
+	);
 }
 
 // This method is called when your extension is deactivated

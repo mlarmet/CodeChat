@@ -15,7 +15,7 @@ import "./App.css";
 const App: React.FC = () => {
 	const [logged, setLogged] = useState(false);
 
-	const { storeMessage, storeAllMessage, messages } = useMessageStore();
+	const { storeMessage, storeAllMessage } = useMessageStore();
 	const { setLoginData, setRemoteConnected } = useLoginStore();
 
 	useEffect(() => {
@@ -32,6 +32,9 @@ const App: React.FC = () => {
 			switch (command) {
 				case "pushMessage":
 					storeMessage(data as IMessageData);
+					break;
+				case "clearMessages":
+					storeAllMessage([]);
 					break;
 				case "receiveLogin":
 					setLoginData(data.loginData as ILoginData);

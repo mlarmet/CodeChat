@@ -15,6 +15,7 @@ interface IMessageEvent {
 		| "logout"
 		| "sendMessage"
 		| "pushMessage"
+		| "clearMessages"
 		| "sendLogin"
 		| "receiveLogin"
 		| "peerConnected"

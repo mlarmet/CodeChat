@@ -30,6 +30,42 @@
 				}
 			}
 		},
+		"commands": [
+			{
+				"command": "CodeChat.about",
+				"title": "Informations",
+				"icon": "$(info)"
+			},
+			{
+				"command": "CodeChat.clearMessages",
+				"title": "Supprimer les messages",
+				"icon": "$(clear-all)"
+			},
+			{
+				"command": "CodeChat.logout",
+				"title": "Quitter la conversation",
+				"icon": "$(sign-out)"
+			}
+		],
+		"menus": {
+			"view/title": [
+				{
+					"command": "CodeChat.about",
+					"when": "view == CodeChat.view",
+					"group": "navigation@1"
+				},
+				{
+					"command": "CodeChat.clearMessages",
+					"when": "view == CodeChat.view && CodeChat.logged",
+					"group": "navigation@2"
+				},
+				{
+					"command": "CodeChat.logout",
+					"when": "view == CodeChat.view && CodeChat.logged",
+					"group": "navigation@3"
+				}
+			]
+		},
 		"viewsContainers": {
 			"activitybar": [
 				{
