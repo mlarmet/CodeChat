@@ -38,7 +38,6 @@ export default function Login() {
 						id="username"
 						placeholder="Pseudo"
 						value={username}
-						onInput={(e) => setUsername(e.currentTarget.value)}
 						onChange={(e) => setUsername(e.currentTarget.value)}
 					/>
 				</div>
@@ -51,20 +50,12 @@ export default function Login() {
 							placeholder="IP"
 							value={isHost ? "" : ipClient}
 							disabled={isHost}
-							onInput={(e) => setIpClient(e.currentTarget.value)}
 							onChange={(e) => setIpClient(e.currentTarget.value)}
 						/>
 					</div>
 					<div className="form-row">
 						<label htmlFor="isHost">Host</label>
-						<input
-							type="checkbox"
-							name="isHost"
-							id="isHost"
-							checked={isHost}
-							onInput={(e) => setIsHost(e.currentTarget.checked)}
-							onChange={(e) => setIsHost(e.currentTarget.checked)}
-						/>
+						<input type="checkbox" name="isHost" id="isHost" checked={isHost} onChange={(e) => setIsHost(e.currentTarget.checked)} />
 					</div>
 				</div>
 

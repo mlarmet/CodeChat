@@ -13,7 +13,11 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const provider = new WebviewProvider(context);
 
-	context.subscriptions.push(vscode.window.registerWebviewViewProvider(`${APP_NAME}.view`, provider));
+	context.subscriptions.push(
+		vscode.window.registerWebviewViewProvider(`${APP_NAME}.view`, provider, {
+			webviewOptions: { retainContextWhenHidden: true },
+		}),
+	);
 }
 
 // This method is called when your extension is deactivated

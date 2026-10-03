@@ -45,9 +45,7 @@
 					"id": "CodeChat.view",
 					"name": "CodeChat",
 					"icon": "resources/icons/comment-discussion.svg",
-					"type": "webview",
-					"when": "true",
-					"retainContextWhenHidden": true
+					"type": "webview"
 				}
 			]
 		}
