@@ -34,6 +34,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		this.webviewView.onDidChangeVisibility(() => {
 			if (this.webviewView?.visible) {
 				this.clearBadge();
+				this.post("focusInput");
 			}
 		});
 

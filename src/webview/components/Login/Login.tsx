@@ -38,6 +38,7 @@ export default function Login() {
 						id="username"
 						placeholder="Pseudo"
 						value={username}
+						autoFocus
 						onChange={(e) => setUsername(e.currentTarget.value)}
 					/>
 				</div>

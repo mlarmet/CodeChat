@@ -19,7 +19,8 @@ interface IMessageEvent {
 		| "receiveLogin"
 		| "peerConnected"
 		| "peerDisconnected"
-		| "error";
+		| "error"
+		| "focusInput";
 	data: unknown;
 }
 

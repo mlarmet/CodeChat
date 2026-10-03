@@ -19,6 +19,11 @@ const App: React.FC = () => {
 	const { setLoginData, setRemoteConnected } = useLoginStore();
 
 	useEffect(() => {
+		// On reopen webview, ask if user is logged
+		vscode.postMessage({ command: "webviewReady", data: null });
+	}, []);
+
+	useEffect(() => {
 		const handler = (event: MessageEvent) => {
 			const payload: IMessageEvent = event.data;
 			const command = payload.command;
@@ -31,7 +36,6 @@ const App: React.FC = () => {
 				case "receiveLogin":
 					setLoginData(data.loginData as ILoginData);
 					storeAllMessage(data.messages as IMessageData[]);
-
 					setLogged(data.logged);
 					break;
 				case "peerConnected":
@@ -45,17 +49,18 @@ const App: React.FC = () => {
 					setRemoteConnected(false);
 					storeAllMessage([]);
 					break;
+				case "focusInput":
+					const inputId = logged ? "message" : "username";
+					document.getElementById(inputId)?.focus();
+					break;
 				default:
 					break;
 			}
 		};
 
-		// On reopen webview, ask if user is logged
-		vscode.postMessage({ command: "webviewReady", data: null });
-
 		window.addEventListener("message", handler);
 		return () => window.removeEventListener("message", handler);
-	}, []);
+	}, [logged]);
 
 	return (
 		<main>
