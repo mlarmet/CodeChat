@@ -31,7 +31,7 @@ export default function Login() {
 	return (
 		<div id="login">
 			<form id="login-form" onSubmit={handleLogin}>
-				<div className="form-col full">
+				<div className="form-col w-100">
 					<input
 						type="text"
 						name="username"
@@ -39,11 +39,12 @@ export default function Login() {
 						placeholder="Pseudo"
 						value={username}
 						autoFocus
+						className="w-100"
 						onChange={(e) => setUsername(e.currentTarget.value)}
 					/>
 				</div>
-				<div className="form-row full">
-					<div id="bottom" className="form-col full">
+				<div className="form-row w-100">
+					<div id="bottom" className="form-col w-100">
 						<input
 							type="text"
 							name="ip-client"
@@ -51,16 +52,17 @@ export default function Login() {
 							placeholder="IP"
 							value={isHost ? "" : ipClient}
 							disabled={isHost}
+							className="w-100"
 							onChange={(e) => setIpClient(e.currentTarget.value)}
 						/>
 					</div>
-					<div className="form-row">
-						<label htmlFor="isHost">Host</label>
+					<div id="is-host-container">
 						<input type="checkbox" name="isHost" id="isHost" checked={isHost} onChange={(e) => setIsHost(e.currentTarget.checked)} />
+						<label htmlFor="isHost">Host</label>
 					</div>
 				</div>
 
-				<button id="send" type="submit" disabled={!username.trim()}>
+				<button id="send" type="submit" className="w-100" disabled={!username.trim()}>
 					Démarrer
 				</button>
 			</form>

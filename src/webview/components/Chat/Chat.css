@@ -3,14 +3,9 @@
 
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
+	gap: 0.5rem;
 
-	padding: 8px;
-}
-
-#chat #send,
-#chat {
-	width: 100%;
+	padding: 0.5rem;
 }
 
 #chat #message {
@@ -18,12 +13,12 @@
 }
 
 #chat #remote-status {
-	display: none;
-	padding: 4px;
-	font-size: 11px;
-	color: var(--vscode-charts-orange);
-}
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
 
-#chat.remote-off #remote-status {
-	display: block;
+	padding: 0.5rem;
+
+	background: var(--vscode-inputValidation-warningBackground);
+	border-radius: var(--vscode-cornerRadius-small);
 }

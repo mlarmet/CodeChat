@@ -18,23 +18,19 @@ main p {
 	margin: 0;
 }
 
-.form-col,
 .form-row {
 	display: flex;
-}
-
-.form-col.full,
-.form-row.full {
-	width: 100%;
-}
-
-.form-row {
 	flex-direction: row;
 	align-items: center;
 	gap: 1rem;
 }
 
 .form-col {
+	display: flex;
 	flex-direction: column;
 	gap: 0.5rem;
+}
+
+.w-100 {
+	width: 100%;
 }

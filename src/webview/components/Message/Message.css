@@ -3,12 +3,12 @@
 	flex-direction: column;
 	gap: 1.25rem;
 
-	flex: 1;
 	overflow-y: auto;
 	min-height: 0;
 
 	/* Scroll to end */
 	margin-top: auto;
+	margin-bottom: 0.5rem;
 
 	/* Scrollbar */
 	padding: 0 0.5rem;
@@ -39,21 +39,27 @@
 	background-color: var(--vscode-chat-requestBubbleBackground);
 
 	border-radius: var(--vscode-cornerRadius-medium);
-	padding: 0.5rem 0.75rem;
+	padding: 0.25rem 0.5rem;
 }
 
 .message-box.owner {
 	background-color: var(--vscode-button-background);
-	color: var(--vscode-strongForeground);
+	color: var(--vscode-button-foreground);
 }
 
 .message-infos {
 	font-size: 11px;
+	color: var(--vscode-descriptionForeground);
 
 	padding-left: 0.25rem;
 
 	display: flex;
 	gap: 0.25rem;
+}
+
+.message-box p {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
 }
 
 .message-infos strong {

@@ -4,6 +4,7 @@ import vscode from "utils/vscode";
 
 import { useLoginStore } from "store/login.store";
 
+import { VscodeProgressBar } from "@vscode-elements/react-elements";
 import "./Chat.css";
 
 export default function Chat() {
@@ -26,11 +27,26 @@ export default function Chat() {
 	};
 
 	return (
-		<div id="chat" className={remoteConnected ? "" : "remote-off"}>
-			<p id="remote-status">En attente de la connexion {loginData?.isHost ? "du client..." : "de l'hôte..."}</p>
+		<div id="chat">
+			{!remoteConnected && (
+				<div id="remote-status" className="w-100">
+					<p>En attente de la connexion {loginData?.isHost ? "du client..." : "de l'hôte..."}</p>
+					<VscodeProgressBar></VscodeProgressBar>
+				</div>
+			)}
+
 			<form id="message-form" onSubmit={handleMessageSend}>
-				<textarea autoFocus name="message" id="message" placeholder="Message" value={message} onChange={(e) => setMessage(e.currentTarget.value)} />
-				<button id="send" type="submit" disabled={!message.trim() || !remoteConnected}>
+				<textarea
+					autoFocus
+					name="message"
+					id="message"
+					className="w-100"
+					placeholder="Message"
+					value={message}
+					onChange={(e) => setMessage(e.currentTarget.value)}
+				/>
+
+				<button id="send" type="submit" className="w-100" disabled={!message.trim() || !remoteConnected}>
 					Envoyer
 				</button>
 			</form>

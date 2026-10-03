@@ -25,3 +25,8 @@
 
 	width: 100%;
 }
+
+#login #is-host-container {
+	display: flex;
+	gap: 0.25rem;
+}

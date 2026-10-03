@@ -5,7 +5,6 @@ import vscode from "utils/vscode";
 import { useLoginStore } from "store/login.store";
 import { useMessageStore } from "store/message.store";
 
-import Actions from "@/components/Actions/Actions";
 import Chat from "@/components/Chat/Chat";
 import Login from "@/components/Login/Login";
 import MessageFeed from "@/components/Message/Message";
@@ -69,7 +68,6 @@ const App: React.FC = () => {
 		<main>
 			{logged ? (
 				<>
-					<Actions />
 					<MessageFeed />
 					<Chat />
 				</>
