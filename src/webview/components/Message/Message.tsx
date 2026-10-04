@@ -11,6 +11,7 @@ export default function MessageFeed() {
 	const elementRef = useRef<HTMLDivElement>(null);
 
 	const messages = useMessageStore((state) => state.messages);
+	const displayEvents = useLoginStore((state) => state.displayEvents);
 
 	useEffect(() => {
 		elementRef.current?.lastElementChild?.scrollIntoView({ behavior: "smooth" });
@@ -20,7 +21,11 @@ export default function MessageFeed() {
 		<div id="message-container" ref={elementRef}>
 			{messages?.length > 0 &&
 				messages.map((message, index) => {
-					return message.type === "presence" ? <EventMessage key={index} message={message} /> : <Message key={index} message={message} />;
+					return message.type === "presence" ? (
+						displayEvents && <EventMessage key={index} message={message} />
+					) : (
+						<Message key={index} message={message} />
+					);
 				})}
 		</div>
 	);

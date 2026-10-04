@@ -30,6 +30,9 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 
 		vscode.commands.executeCommand("setContext", "CodeChat.logged", this.logged);
 
+		const visible = this.context.globalState.get<boolean>("lastEvents", true);
+		this.post("toggleEvents", { isVisible: visible });
+
 		this.webviewView.webview.options = {
 			enableScripts: true,
 			localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, "dist")],
@@ -126,14 +129,17 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		this.webviewView!.badge = { value: 0, tooltip: "" };
 	}
 
-	private isNotificationActive(): boolean {
+	private getSetting(key: keyof typeof SETTINGS_KEYS, defaultValue: any): any {
 		const config = vscode.workspace.getConfiguration(APP_NAME);
-		return config.get<boolean>(SETTINGS_KEYS.notification, true);
+		return config.get<number>(SETTINGS_KEYS[key], defaultValue);
+	}
+
+	private isNotificationActive(): boolean {
+		return this.getSetting("notification", true);
 	}
 
 	private getPort(): number {
-		const config = vscode.workspace.getConfiguration(APP_NAME);
-		return config.get<number>(SETTINGS_KEYS.port, PORT);
+		return this.getSetting("port", PORT);
 	}
 
 	// -------------------------
@@ -174,6 +180,12 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 	handleClearMessages(): void {
 		this.messages = [];
 		this.post("clearMessages");
+	}
+
+	handleHideEvents(value: boolean): void {
+		this.context.globalState.update("lastEvents", value);
+		vscode.commands.executeCommand("setContext", "CodeChat.eventsVisible", value);
+		this.post("toggleEvents", { isVisible: value });
 	}
 
 	private handleSendMessage(data: MessageData): void {

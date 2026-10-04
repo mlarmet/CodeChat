@@ -7,11 +7,14 @@ import { WebviewProvider } from "./WebWiewProvider.js";
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
 	// This lines of code will only be executed once when your extension is activated
 	logger.info(`${APP_NAME} extension is now active!`);
 
 	const provider = new WebviewProvider(context);
+
+	const visible = context.globalState.get<boolean>("lastEvents", true);
+	await vscode.commands.executeCommand("setContext", "CodeChat.eventsVisible", visible);
 
 	context.subscriptions.push(
 		vscode.window.registerWebviewViewProvider(`${APP_NAME}.view`, provider, {
@@ -54,6 +57,9 @@ export function activate(context: vscode.ExtensionContext) {
 				provider.handleLogout();
 			}
 		}),
+
+		vscode.commands.registerCommand(`${APP_NAME}.hideConnectionEvents`, () => provider.handleHideEvents(false)),
+		vscode.commands.registerCommand(`${APP_NAME}.showConnectionEvents`, () => provider.handleHideEvents(true)),
 	);
 }
 

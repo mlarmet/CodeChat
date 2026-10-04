@@ -46,6 +46,16 @@
 				"command": "CodeChat.logout",
 				"title": "Quitter la conversation",
 				"icon": "$(sign-out)"
+			},
+			{
+				"command": "CodeChat.hideConnectionEvents",
+				"title": "Masquer les messages de connexion",
+				"icon": "$(eye-closed)"
+			},
+			{
+				"command": "CodeChat.showConnectionEvents",
+				"title": "Afficher les messages de connexion",
+				"icon": "$(eye)"
 			}
 		],
 		"menus": {
@@ -64,6 +74,16 @@
 					"command": "CodeChat.logout",
 					"when": "view == CodeChat.view && CodeChat.logged",
 					"group": "navigation@3"
+				},
+				{
+					"command": "CodeChat.hideConnectionEvents",
+					"when": "view == CodeChat.view && CodeChat.eventsVisible",
+					"group": "1_actions"
+				},
+				{
+					"command": "CodeChat.showConnectionEvents",
+					"when": "view == CodeChat.view && !CodeChat.eventsVisible",
+					"group": "1_actions"
 				}
 			]
 		},

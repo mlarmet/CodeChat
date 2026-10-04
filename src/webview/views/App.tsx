@@ -15,7 +15,7 @@ const App: React.FC = () => {
 	const [logged, setLogged] = useState(false);
 
 	const { storeMessage, storeAllMessage } = useMessageStore();
-	const { setLoginData, setList } = useLoginStore();
+	const { setLoginData, setList, setDisplayEvents } = useLoginStore();
 
 	useEffect(() => {
 		// On open webview, ask for last form data
@@ -39,6 +39,10 @@ const App: React.FC = () => {
 				}
 				case "clearMessages":
 					storeAllMessage([]);
+					break;
+				case "toggleEvents":
+					const value = data.isVisible as boolean;
+					setDisplayEvents(value);
 					break;
 				case "receiveLogin": {
 					const session = data as ISessionPayload;

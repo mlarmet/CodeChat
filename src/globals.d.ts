@@ -50,6 +50,7 @@ interface IMessageEvent {
 		| "sendLogin"
 		| "receiveLogin"
 		| "error"
+		| "toggleEvents"
 		| "focusInput";
 	data: unknown;
 }
