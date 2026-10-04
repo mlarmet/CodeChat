@@ -17,13 +17,6 @@
 		"configuration": {
 			"title": "CodeChat",
 			"properties": {
-				"CodeChat.port": {
-					"type": "number",
-					"default": 12121,
-					"minimum": 1,
-					"maximum": 65535,
-					"description": "Port du serveur"
-				},
 				"CodeChat.notification": {
 					"type": "boolean",
 					"default": true,

@@ -19,7 +19,7 @@ export class WsServer {
 			throw new Error("Server already running");
 		}
 
-		this.wss = new WebSocketServer({ port });
+		this.wss = new WebSocketServer({ host: "0.0.0.0", port });
 		this.notifyList();
 
 		this.wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
@@ -117,7 +117,7 @@ export class WsServer {
 
 		this.sockets.delete(peerId);
 		const offlinePeer: PeerInfo = { ...peer, status: "offline" };
-		this.peers.set(peerId, offlinePeer);
+		this.peers.delete(peerId);
 
 		const datetime = new Date().toISOString();
 		this.broadcast({ kind: "presence", event: "leave", peer: offlinePeer, datetime });

@@ -1,0 +1,71 @@
+.about-status {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.about-dot {
+	flex: none;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--vscode-disabledForeground);
+}
+
+.about-dot--online {
+	background: var(--vscode-charts-green);
+}
+
+.about-dot--busy {
+	background: var(--vscode-charts-red);
+}
+
+.about-dot--offline {
+	background: var(--vscode-charts-lines);
+}
+
+.about-muted {
+	color: var(--vscode-descriptionForeground);
+}
+
+.about-info {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 4px 16px;
+	margin: 12px 0 0;
+}
+
+.about-info dd {
+	margin: 0;
+}
+
+.about-copy {
+	cursor: pointer;
+}
+
+.about-hint {
+	margin: 8px 0 0;
+}
+
+.about-section-title {
+	font-weight: 600;
+}
+
+.about-members {
+	list-style: none;
+	margin: 6px 0 0;
+	padding: 0;
+	max-height: 160px;
+	overflow: auto;
+}
+
+.about-member {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.25rem 0;
+}
+
+.about-member--offline {
+	opacity: 0.6;
+}

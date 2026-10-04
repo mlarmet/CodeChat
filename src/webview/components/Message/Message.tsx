@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { useEffect, useRef } from "react";
 
+import { useAppstore } from "store/app.store";
 import { useLoginStore } from "store/login.store";
 import { useMessageStore } from "store/message.store";
 
@@ -11,7 +12,7 @@ export default function MessageFeed() {
 	const elementRef = useRef<HTMLDivElement>(null);
 
 	const messages = useMessageStore((state) => state.messages);
-	const displayEvents = useLoginStore((state) => state.displayEvents);
+	const displayEvents = useAppstore((state) => state.displayEvents);
 
 	useEffect(() => {
 		elementRef.current?.lastElementChild?.scrollIntoView({ behavior: "smooth" });
@@ -45,15 +46,15 @@ const getDatetime = (datetime: string) => {
 };
 
 function Message({ message }: IMessageProps) {
-	const { loginData } = useLoginStore();
+	const loginData = useLoginStore((state) => state.loginData);
 
-	const isOwner = message.author === loginData?.username;
+	const isOwner = message.authorId === loginData?.id;
 
 	return (
 		<div className={"message-row" + (isOwner ? " owner" : "")}>
 			<div className="message-block">
 				<div className="message-infos">
-					<strong>{message.author}</strong>
+					<strong>{message.authorName}</strong>
 					<span>- {getDatetime(message.datetime)}</span>
 				</div>
 				<div className={"message-box" + (isOwner ? " owner" : "")}>{message.type === "message" && <p>{message.text}</p>}</div>
@@ -64,7 +65,7 @@ function Message({ message }: IMessageProps) {
 
 function EventMessage({ message }: IMessageProps) {
 	const verb = message.type === "presence" && message.event === "join" ? "connecté" : "déconnecté";
-	const label = message.type === "presence" && message.isHost ? `L'hôte (${message.author})` : message.author;
+	const label = message.type === "presence" && message.isHost ? `L'hôte (${message.authorName})` : message.authorName;
 
 	return (
 		<div className="message-infos">

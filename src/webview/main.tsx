@@ -1,6 +1,8 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 
+import { ModalProvider } from "./components/Modal/ModalProvider";
+
 import App from "@/views/App";
 
 import "utils/vscode";
@@ -15,6 +17,8 @@ if (!container) {
 
 createRoot(container).render(
 	<React.StrictMode>
-		<App />
+		<ModalProvider>
+			<App />
+		</ModalProvider>
 	</React.StrictMode>,
 );

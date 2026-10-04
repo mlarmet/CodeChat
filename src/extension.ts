@@ -58,6 +58,8 @@ export async function activate(context: vscode.ExtensionContext) {
 			}
 		}),
 
+		vscode.commands.registerCommand(`${APP_NAME}.about`, () => provider.handleShowAbout()),
+
 		vscode.commands.registerCommand(`${APP_NAME}.hideConnectionEvents`, () => provider.handleHideEvents(false)),
 		vscode.commands.registerCommand(`${APP_NAME}.showConnectionEvents`, () => provider.handleHideEvents(true)),
 	);

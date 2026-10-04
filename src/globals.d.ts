@@ -3,7 +3,7 @@ declare const APP_NAME: string;
 declare module "*.css";
 
 type PresenceEvent = "join" | "leave";
-type PeerStatus = "online" | "offline";
+type PeerStatus = "online" | "offline" | "busy";
 
 interface PeerInfo {
 	id: string;
@@ -12,20 +12,22 @@ interface PeerInfo {
 	status: PeerStatus;
 }
 
+type MessageBase = {
+	authorId?: string;
+	authorName: string;
+	datetime: string;
+};
+
 type MessageData =
-	| {
+	| (MessageBase & {
 			text: string;
-			author: string;
-			datetime: string;
 			type: "message";
-	  }
-	| {
-			author: string;
-			datetime: string;
+	  })
+	| (MessageBase & {
 			type: "presence";
 			event: PresenceEvent;
 			isHost: boolean;
-	  };
+	  });
 
 interface IListPayload {
 	peers: PeerInfo[];
@@ -49,6 +51,7 @@ interface IMessageEvent {
 		| "clearMessages"
 		| "sendLogin"
 		| "receiveLogin"
+		| "showAbout"
 		| "error"
 		| "toggleEvents"
 		| "focusInput";
@@ -56,8 +59,10 @@ interface IMessageEvent {
 }
 
 interface ILoginData {
+	id?: string;
 	username: string;
 	ipClient: string;
+	port: number;
 	isHost: boolean;
 }
 

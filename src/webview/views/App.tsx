@@ -1,21 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import vscode from "utils/vscode";
 
+import { useAppstore } from "store/app.store";
 import { useLoginStore } from "store/login.store";
 import { useMessageStore } from "store/message.store";
 
+import About from "@/components/About/About";
 import Chat from "@/components/Chat/Chat";
 import Login from "@/components/Login/Login";
 import MessageFeed from "@/components/Message/Message";
 
+import { useModal } from "@/components/Modal/ModalProvider";
+
 import "./App.css";
 
 const App: React.FC = () => {
-	const [logged, setLogged] = useState(false);
-
 	const { storeMessage, storeAllMessage } = useMessageStore();
-	const { setLoginData, setList, setDisplayEvents } = useLoginStore();
+	const { setLoginData, setList } = useLoginStore();
+	const { setShowAboutModal, setDisplayEvents, showAboutModal, setLogged, logged } = useAppstore();
+
+	const { open } = useModal();
 
 	useEffect(() => {
 		// On open webview, ask for last form data
@@ -23,7 +28,7 @@ const App: React.FC = () => {
 	}, []);
 
 	useEffect(() => {
-		const handler = (event: MessageEvent) => {
+		const handler = async (event: MessageEvent) => {
 			const payload: IMessageEvent = event.data;
 			const command = payload.command;
 			const data: any = payload.data;
@@ -39,6 +44,11 @@ const App: React.FC = () => {
 				}
 				case "clearMessages":
 					storeAllMessage([]);
+					break;
+				case "showAbout":
+					if (showAboutModal) return;
+					setShowAboutModal(true);
+					open(<About />, { title: "À propos", onDismiss: () => setShowAboutModal(false) });
 					break;
 				case "toggleEvents":
 					const value = data.isVisible as boolean;

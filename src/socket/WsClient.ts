@@ -117,6 +117,10 @@ export class WsClient {
 		this.ws = null;
 	}
 
+	getPeerId(): string {
+		return this.clientId;
+	}
+
 	private applyList(peers: PeerInfo[], fromWelcome: boolean): void {
 		this.lastPeers = peers;
 		this.hostPeer = peers.find((peer) => peer.isHost) ?? this.hostPeer;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import vscode from "utils/vscode";
 
@@ -8,6 +8,8 @@ import { VscodeProgressBar } from "@vscode-elements/react-elements";
 import "./Chat.css";
 
 export default function Chat() {
+	const messageFormRef = useRef<HTMLFormElement>(null);
+
 	const { loginData, remoteConnected } = useLoginStore();
 	const [message, setMessage] = useState("");
 
@@ -17,7 +19,8 @@ export default function Chat() {
 		if (!remoteConnected || !loginData) return;
 
 		const message: MessageData = {
-			author: loginData.username,
+			authorId: loginData.id,
+			authorName: loginData.username,
 			text: e.currentTarget.message.value,
 			datetime: new Date().toISOString(),
 			type: "message",
@@ -25,6 +28,13 @@ export default function Chat() {
 
 		vscode.postMessage({ command: "sendMessage", data: message });
 		setMessage("");
+	};
+
+	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+		if (e.key === "Enter" && e.ctrlKey == true) {
+			e.preventDefault();
+			messageFormRef.current?.requestSubmit();
+		}
 	};
 
 	return (
@@ -36,7 +46,7 @@ export default function Chat() {
 				</div>
 			)}
 
-			<form id="message-form" onSubmit={handleMessageSend}>
+			<form id="message-form" onSubmit={handleMessageSend} ref={messageFormRef}>
 				<textarea
 					autoFocus
 					name="message"
@@ -44,6 +54,7 @@ export default function Chat() {
 					className="w-100"
 					placeholder="Message"
 					value={message}
+					onKeyDown={(e) => handleKeyDown(e)}
 					onChange={(e) => setMessage(e.currentTarget.value)}
 				/>
 

@@ -23,7 +23,8 @@ export function parseWire(raw: string): WireMessage | null {
 export function presenceMessage(peer: PeerInfo, event: PresenceEvent, datetime?: string): MessageData {
 	return {
 		type: "presence",
-		author: peer.name,
+		authorId: peer.id,
+		authorName: peer.name,
 		datetime: datetime ?? new Date().toISOString(),
 		event,
 		isHost: peer.isHost,

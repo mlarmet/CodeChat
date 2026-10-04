@@ -1,0 +1,58 @@
+/* Le reste (button, button.secondary, a, code…) vient du style de base de l'extension. */
+
+.modal {
+	width: min(480px, 90vw);
+	padding: 0;
+
+	background: var(--vscode-editorWidget-background);
+	color: var(--vscode-editorWidget-foreground, var(--vscode-foreground));
+
+	border: 1px solid var(--vscode-widget-border, transparent);
+	border-radius: var(--vscode-cornerRadius-small);
+	box-shadow: 0 0 8px 2px var(--vscode-widget-shadow);
+}
+
+.modal::backdrop {
+	background: rgba(0, 0, 0, 0.3);
+}
+
+.modal-content {
+	position: relative;
+	padding: 8px 16px;
+}
+
+.modal-close {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	background: transparent;
+	color: inherit;
+}
+
+.modal-close:hover {
+	background: var(--vscode-toolbar-hoverBackground);
+}
+
+.modal-close:focus-visible {
+	outline-offset: -1px;
+}
+
+.modal h2 {
+	margin: 0 0 16px 0;
+	font-size: 1.15em;
+	font-weight: 600;
+	padding-right: 16px;
+}
+
+.modal-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	margin-top: 8px;
+}

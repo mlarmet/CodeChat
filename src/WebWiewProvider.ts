@@ -6,7 +6,8 @@ import { WsServer } from "./socket/WsServer.js";
 import logger from "utils/logger";
 
 import { PORT, SETTINGS_KEYS } from "contants.js";
-import { isChatMessage } from "./socket/protocol.js";
+import { getLocalIPv4 } from "utils/network.js";
+import { HOST_PEER_ID, isChatMessage } from "./socket/protocol.js";
 
 export class WebviewProvider implements vscode.WebviewViewProvider {
 	private server: WsServer | null = null;
@@ -29,6 +30,11 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		this.webviewView = webviewView;
 
 		vscode.commands.executeCommand("setContext", "CodeChat.logged", this.logged);
+
+		const port = this.context.globalState.get<number>("lastPort");
+		if (!port) {
+			this.context.globalState.update("lastPort", PORT);
+		}
 
 		const visible = this.context.globalState.get<boolean>("lastEvents", true);
 		this.post("toggleEvents", { isVisible: visible });
@@ -88,11 +94,15 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		const lastAddress = this.context.globalState.get<string>("lastAddress");
 		const lastNickname = this.context.globalState.get<string>("lastNickname");
 		const lastHost = this.context.globalState.get<boolean>("lastHost");
+		const lastPort = this.context.globalState.get<number>("lastPort");
 
-		this.loginData = { username: lastNickname ?? "", isHost: lastHost ?? false, ipClient: lastAddress ?? "" };
+		this.loginData = { username: lastNickname ?? "", isHost: lastHost ?? false, ipClient: lastAddress ?? "", port: lastPort ?? PORT };
 	}
 
 	private sendSession(): void {
+		if (this.logged && this.loginData) {
+			this.loginData.id = this.loginData.isHost ? HOST_PEER_ID : this.client?.getPeerId();
+		}
 		const payload: ISessionPayload = {
 			loginData: this.loginData,
 			messages: this.messages,
@@ -138,10 +148,6 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		return this.getSetting("notification", true);
 	}
 
-	private getPort(): number {
-		return this.getSetting("port", PORT);
-	}
-
 	// -------------------------
 	// Handlers
 	// -------------------------
@@ -150,12 +156,18 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		this.cleanup(); // Reset si on relance
 
 		this.loginData = data;
-		const { username, isHost, ipClient } = this.loginData;
-		const port = this.getPort();
+
+		if (this.loginData.isHost) {
+			const ip = getLocalIPv4();
+			this.loginData.ipClient = ip ?? "";
+		}
+
+		const { username, isHost, ipClient, port } = this.loginData;
 
 		this.context.globalState.update("lastAddress", ipClient);
 		this.context.globalState.update("lastNickname", username);
 		this.context.globalState.update("lastHost", isHost);
+		this.context.globalState.update("lastPort", port);
 
 		logger.info(`Login: name=${username}, isHost=${isHost}${isHost ? "" : `, ip=${ipClient}`}`);
 
@@ -168,6 +180,10 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		this.logged = true;
 		vscode.commands.executeCommand("setContext", "CodeChat.logged", this.logged);
 		this.sendSession();
+	}
+
+	handleShowAbout(): void {
+		this.post("showAbout");
 	}
 
 	handleLogout(): void {
@@ -212,15 +228,15 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		switch (event.type) {
 			case "message":
 				if (isChatMessage(event.data)) {
-					logger.info(`Message from ${event.data.author}: ${event.data.text}`);
+					logger.info(`Message from ${event.data.authorName}: ${event.data.text}`);
 				} else {
-					logger.info(`Presence ${event.data.event} from ${event.data.author}`);
+					logger.info(`Presence ${event.data.event} from ${event.data.authorName}`);
 				}
 
 				this.pushLocalMessage(event.data);
 
 				if (isChatMessage(event.data) && this.isNotificationActive()) {
-					this.notify(event.data.author);
+					this.notify(event.data.authorName);
 				}
 				break;
 			case "list":
@@ -250,7 +266,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 	private startServer(hostName: string): void {
 		this.server = new WsServer(hostName, this.handleSocketEvent);
 
-		const port = this.getPort();
+		const port = this.loginData?.port ?? PORT;
 
 		try {
 			this.server.start(port);
