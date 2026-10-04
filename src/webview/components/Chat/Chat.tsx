@@ -16,10 +16,11 @@ export default function Chat() {
 
 		if (!remoteConnected || !loginData) return;
 
-		const message: IMessageData = {
+		const message: MessageData = {
 			author: loginData.username,
 			text: e.currentTarget.message.value,
-			datetime: new Date(),
+			datetime: new Date().toISOString(),
+			type: "message",
 		};
 
 		vscode.postMessage({ command: "sendMessage", data: message });

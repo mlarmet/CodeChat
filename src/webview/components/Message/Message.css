@@ -47,6 +47,11 @@
 	color: var(--vscode-button-foreground);
 }
 
+.message-box p {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
 .message-infos {
 	font-size: 11px;
 	color: var(--vscode-descriptionForeground);
@@ -54,12 +59,8 @@
 	padding-left: 0.25rem;
 
 	display: flex;
+	align-items: center;
 	gap: 0.25rem;
-}
-
-.message-box p {
-	white-space: pre-wrap;
-	overflow-wrap: anywhere;
 }
 
 .message-infos strong {
@@ -72,6 +73,13 @@
 	min-width: max-content;
 }
 
-.message-blank {
+.message-infos hr {
 	flex: 1;
+}
+.message-infos hr:first-of-type {
+	margin-right: 4px;
+}
+
+.message-infos hr:last-of-type {
+	margin-left: 4px;
 }

@@ -1,108 +1,166 @@
+import logger from "utils/logger";
 import { WebSocket } from "ws";
 
-export type ClientEvent =
-	| { type: "connected" }
-	| { type: "reconnecting" }
-	| { type: "disconnected" }
-	| { type: "message"; data: IMessageData }
-	| { type: "error"; message: string };
+import { createPeer, createPeerId, HOST_PEER_ID, parseWire, presenceMessage } from "./protocol.js";
 
-type WireMessage = { kind: "handshake"; name: string } | { kind: "chat"; data: IMessageData };
+const INITIAL_RECONNECT_DELAY = 3_000;
+const MAX_RECONNECT_DELAY = 30_000;
 
 export class WsClient {
 	private ws: WebSocket | null = null;
-
-	private ip: string;
-	private port: number;
-	private clientName: string;
-
 	private reconnectTimer: NodeJS.Timeout | null = null;
-	private shouldReconnect: boolean = true;
-	private reconnectDelay: number = 3000;
+	private reconnectDelay = INITIAL_RECONNECT_DELAY;
+	private shouldReconnect = true;
+	private sessionEstablished = false;
+	private hostLeaveAnnounced = false;
+	private hostPeer: PeerInfo = createPeer(HOST_PEER_ID, "Host", true, "offline");
+	private lastPeers: PeerInfo[];
 
-	private onEvent: (event: ClientEvent) => void;
+	private readonly clientId = createPeerId();
+	private readonly onEvent: (event: SocketEvent) => void;
 
-	constructor(clientName: string, ip: string, port: number, onEvent: (event: ClientEvent) => void) {
-		this.clientName = clientName;
-		this.ip = ip;
-		this.port = port;
-
+	constructor(
+		private readonly clientName: string,
+		private readonly ip: string,
+		private readonly port: number,
+		onEvent: (event: SocketEvent) => void,
+	) {
 		this.onEvent = onEvent;
+		this.lastPeers = [this.hostPeer, createPeer(this.clientId, clientName, false, "online")];
 	}
 
-	private scheduleReconnect(): void {
-		this.reconnectTimer = setTimeout(() => {
-			this.onEvent({ type: "reconnecting" });
-			this.connect(this.ip, this.port);
-			// backoff exponentiel plafonné à 30s
-			this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30_000);
-		}, this.reconnectDelay);
-	}
-
-	connect(ip: string, port: number): void {
-		if (this.ws) {
-			throw new Error("Already connected");
+	connect(): void {
+		if (!this.shouldReconnect) {
+			return;
 		}
 
-		const url = `ws://${ip}:${port}`;
-		this.ws = new WebSocket(url);
+		if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+			return;
+		}
 
-		this.ws.on("open", () => {
-			// Envoyer le handshake avec notre nom
-			const handshake: WireMessage = { kind: "handshake", name: this.clientName };
-			this.ws!.send(JSON.stringify(handshake));
-			this.onEvent({ type: "connected" });
-		});
+		const socket = new WebSocket(`ws://${this.ip}:${this.port}`);
+		this.ws = socket;
 
-		this.ws.on("message", (raw) => {
-			let msg: WireMessage;
-
-			try {
-				msg = JSON.parse(raw.toString()) as WireMessage;
-			} catch {
+		socket.on("open", () => {
+			if (this.ws !== socket) {
 				return;
 			}
 
-			if (msg.kind === "chat") {
-				this.onEvent({ type: "message", data: msg.data });
+			socket.send(JSON.stringify({ kind: "hello", name: this.clientName, clientId: this.clientId }));
+		});
+
+		socket.on("message", (raw) => {
+			if (this.ws !== socket) {
+				return;
+			}
+
+			const msg = parseWire(raw.toString());
+			if (!msg) {
+				return;
+			}
+
+			switch (msg.kind) {
+				case "welcome":
+				case "list":
+					this.applyList(msg.peers, msg.kind === "welcome");
+					break;
+				case "presence":
+					this.onEvent({ type: "message", data: presenceMessage(msg.peer, msg.event, msg.datetime) });
+					break;
+				case "chat":
+					this.onEvent({ type: "message", data: msg.data });
+					break;
 			}
 		});
 
-		this.ws.on("close", (code) => {
+		socket.on("close", (code) => {
+			if (this.ws !== socket) {
+				return;
+			}
+
 			this.ws = null;
-			this.onEvent({ type: "disconnected" });
+			logger.info(`Connection closed with code ${code}`);
+			this.setHostStatus("offline");
+			this.emitList(false);
 
-			// 1000 = fermeture normale (disconnect() appelé volontairement)
-			if (this.shouldReconnect && code !== 1000) {
-				this.scheduleReconnect();
+			if (!this.shouldReconnect) {
+				return;
 			}
+
+			if (this.sessionEstablished && !this.hostLeaveAnnounced) {
+				this.onEvent({ type: "message", data: presenceMessage(this.hostPeer, "leave") });
+				this.hostLeaveAnnounced = true;
+			}
+
+			this.scheduleReconnect();
 		});
 
-		this.ws.on("error", (err) => {
-			this.onEvent({ type: "error", message: err.message });
+		socket.on("error", (err) => {
+			if (this.ws === socket) {
+				logger.warn(`WS client error: ${err.message}`);
+			}
 		});
 	}
 
-	send(data: IMessageData): void {
+	send(data: Extract<MessageData, { type: "message" }>): void {
 		if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
 			throw new Error("Not connected");
 		}
 
-		const msg: WireMessage = { kind: "chat", data };
-		this.ws.send(JSON.stringify(msg));
-	}
-
-	isConnected(): boolean {
-		return !!this.ws && this.ws.readyState === WebSocket.OPEN;
+		this.ws.send(JSON.stringify({ kind: "chat", data }));
 	}
 
 	disconnect(): void {
 		this.shouldReconnect = false;
+		this.clearReconnectTimer();
+		this.ws?.close(1000);
+		this.ws = null;
+	}
+
+	private applyList(peers: PeerInfo[], fromWelcome: boolean): void {
+		this.lastPeers = peers;
+		this.hostPeer = peers.find((peer) => peer.isHost) ?? this.hostPeer;
+		this.emitList(true);
+
+		if (!fromWelcome) {
+			return;
+		}
+
+		this.sessionEstablished = true;
+		this.reconnectDelay = INITIAL_RECONNECT_DELAY;
+
+		if (this.hostLeaveAnnounced) {
+			this.onEvent({ type: "message", data: presenceMessage({ ...this.hostPeer, status: "online" }, "join") });
+			this.hostLeaveAnnounced = false;
+		}
+	}
+
+	private setHostStatus(status: PeerStatus): void {
+		this.hostPeer = { ...this.hostPeer, status };
+		this.lastPeers = this.lastPeers.map((peer) => (peer.isHost ? this.hostPeer : peer));
+	}
+
+	private emitList(remoteConnected: boolean): void {
+		const peers = remoteConnected
+			? this.lastPeers
+			: this.lastPeers.map((peer) => (peer.id === this.clientId ? peer : { ...peer, status: "offline" as const }));
+
+		this.onEvent({ type: "list", peers, remoteConnected });
+	}
+
+	private scheduleReconnect(): void {
+		this.clearReconnectTimer();
+		this.reconnectTimer = setTimeout(() => {
+			logger.info("Reconnecting...");
+			this.connect();
+			this.reconnectDelay = Math.min(this.reconnectDelay * 2, MAX_RECONNECT_DELAY);
+		}, this.reconnectDelay);
+	}
+
+	private clearReconnectTimer(): void {
 		if (this.reconnectTimer) {
 			clearTimeout(this.reconnectTimer);
 			this.reconnectTimer = null;
 		}
-		this.ws?.close(1000); // code 1000 = volontaire
-		this.ws = null;
 	}
 }

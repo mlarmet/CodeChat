@@ -15,10 +15,10 @@ const App: React.FC = () => {
 	const [logged, setLogged] = useState(false);
 
 	const { storeMessage, storeAllMessage } = useMessageStore();
-	const { setLoginData, setRemoteConnected } = useLoginStore();
+	const { setLoginData, setList } = useLoginStore();
 
 	useEffect(() => {
-		// On reopen webview, ask if user is logged
+		// On open webview, ask for last form data
 		vscode.postMessage({ command: "webviewReady", data: null });
 	}, []);
 
@@ -30,30 +30,31 @@ const App: React.FC = () => {
 
 			switch (command) {
 				case "pushMessage":
-					storeMessage(data as IMessageData);
+					storeMessage(data as MessageData);
 					break;
+				case "pushList": {
+					const list = data as IListPayload;
+					setList(list.peers, list.remoteConnected);
+					break;
+				}
 				case "clearMessages":
 					storeAllMessage([]);
 					break;
-				case "receiveLogin":
-					setLoginData(data.loginData as ILoginData);
-					storeAllMessage(data.messages as IMessageData[]);
-					setLogged(data.logged);
+				case "receiveLogin": {
+					const session = data as ISessionPayload;
+					setLoginData(session.loginData);
+					storeAllMessage(session.messages);
+					setLogged(session.logged);
+					setList(session.peers, session.remoteConnected);
 					break;
-				case "peerConnected":
-					setRemoteConnected(true);
-					break;
-				case "peerDisconnected":
-					setRemoteConnected(false);
-					break;
+				}
 				case "logout":
 					setLogged(false);
-					setRemoteConnected(false);
+					setList([], false);
 					storeAllMessage([]);
 					break;
 				case "focusInput":
-					const inputId = logged ? "message" : "username";
-					document.getElementById(inputId)?.focus();
+					document.getElementById(logged ? "message" : "username")?.focus();
 					break;
 				default:
 					break;
@@ -62,7 +63,7 @@ const App: React.FC = () => {
 
 		window.addEventListener("message", handler);
 		return () => window.removeEventListener("message", handler);
-	}, [logged]);
+	}, [logged, setLoginData, setList, storeAllMessage, storeMessage]);
 
 	return (
 		<main>

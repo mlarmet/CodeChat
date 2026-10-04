@@ -17,11 +17,9 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.registerWebviewViewProvider(`${APP_NAME}.view`, provider, {
 			webviewOptions: { retainContextWhenHidden: true },
 		}),
-	);
 
-	context.subscriptions.push(
 		vscode.commands.registerCommand(`${APP_NAME}.clearMessages`, async () => {
-			if (provider.wasLogged === false) {
+			if (provider.logged === false) {
 				vscode.window.showInformationMessage("Vous devez être connecté pour effectuer cette action.");
 				return;
 			}
@@ -39,11 +37,9 @@ export function activate(context: vscode.ExtensionContext) {
 				provider.handleClearMessages();
 			}
 		}),
-	);
 
-	context.subscriptions.push(
 		vscode.commands.registerCommand(`${APP_NAME}.logout`, async () => {
-			if (provider.wasLogged === false) {
+			if (provider.logged === false) {
 				vscode.window.showInformationMessage("Vous devez être connecté pour effectuer cette action.");
 				return;
 			}

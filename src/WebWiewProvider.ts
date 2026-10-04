@@ -1,11 +1,12 @@
 import * as vscode from "vscode";
 
-import { ClientEvent, WsClient } from "./socket/WsClient.js";
-import { ServerEvent, WsServer } from "./socket/WsServer.js";
+import { WsClient } from "./socket/WsClient.js";
+import { WsServer } from "./socket/WsServer.js";
 
 import logger from "utils/logger";
 
 import { PORT, SETTINGS_KEYS } from "contants.js";
+import { isChatMessage } from "./socket/protocol.js";
 
 export class WebviewProvider implements vscode.WebviewViewProvider {
 	private server: WsServer | null = null;
@@ -14,18 +15,20 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 	private webviewView: vscode.WebviewView | null = null;
 
 	private loginData: ILoginData | null = null;
-	private messages: IMessageData[] = [];
+	private messages: MessageData[] = [];
+	private peers: PeerInfo[] = [];
+	private remoteConnected = false;
 
 	private unreadCount: number = 0;
 
-	wasLogged: boolean = false;
+	logged: boolean = false;
 
 	constructor(private readonly context: vscode.ExtensionContext) {}
 
 	resolveWebviewView(webviewView: vscode.WebviewView) {
 		this.webviewView = webviewView;
 
-		vscode.commands.executeCommand("setContext", "CodeChat.logged", this.wasLogged);
+		vscode.commands.executeCommand("setContext", "CodeChat.logged", this.logged);
 
 		this.webviewView.webview.options = {
 			enableScripts: true,
@@ -47,10 +50,10 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 
 			switch (command) {
 				case "webviewReady":
-					this.restoreState();
+					this.sendLastData();
 					break;
 				case "sendMessage":
-					this.handleSendMessage(data as IMessageData);
+					this.handleSendMessage(data as MessageData);
 					break;
 				case "sendLogin":
 					this.handleLogin(data as ILoginData);
@@ -69,22 +72,16 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		});
 	}
 
-	private restoreState(): void {
-		if (this.server) {
-			if (this.server.isClientConnected()) {
-				this.post("peerConnected", { name: this.server.getClientName() });
-			}
-		} else if (this.client) {
-			if (this.client.isConnected()) {
-				this.post("peerConnected", { name: "Host" });
-			}
-		}
-
+	private sendLastData(): void {
 		this.restoreLastLoginData();
-		this.sendLoginData();
+		this.sendSession();
 	}
 
 	private restoreLastLoginData(): void {
+		if (this.loginData) {
+			return;
+		}
+
 		const lastAddress = this.context.globalState.get<string>("lastAddress");
 		const lastNickname = this.context.globalState.get<string>("lastNickname");
 		const lastHost = this.context.globalState.get<boolean>("lastHost");
@@ -92,9 +89,15 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		this.loginData = { username: lastNickname ?? "", isHost: lastHost ?? false, ipClient: lastAddress ?? "" };
 	}
 
-	private sendLoginData(): void {
-		const logData = { loginData: this.loginData, messages: this.messages, logged: this.wasLogged };
-		this.post("receiveLogin", logData);
+	private sendSession(): void {
+		const payload: ISessionPayload = {
+			loginData: this.loginData,
+			messages: this.messages,
+			logged: this.logged,
+			peers: this.peers,
+			remoteConnected: this.remoteConnected,
+		};
+		this.post("receiveLogin", payload);
 	}
 
 	private async notify(from: string): Promise<void> {
@@ -156,16 +159,16 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 			this.connectClient(username, ipClient, port);
 		}
 
-		this.wasLogged = true;
-		vscode.commands.executeCommand("setContext", "CodeChat.logged", this.wasLogged);
-		this.sendLoginData();
+		this.logged = true;
+		vscode.commands.executeCommand("setContext", "CodeChat.logged", this.logged);
+		this.sendSession();
 	}
 
 	handleLogout(): void {
 		this.cleanup();
 		this.post("logout");
-		this.wasLogged = false;
-		vscode.commands.executeCommand("setContext", "CodeChat.logged", this.wasLogged);
+		this.logged = false;
+		vscode.commands.executeCommand("setContext", "CodeChat.logged", this.logged);
 	}
 
 	handleClearMessages(): void {
@@ -173,7 +176,11 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		this.post("clearMessages");
 	}
 
-	private handleSendMessage(data: IMessageData): void {
+	private handleSendMessage(data: MessageData): void {
+		if (!isChatMessage(data)) {
+			return;
+		}
+
 		try {
 			if (this.server) {
 				this.server.send(data);
@@ -181,8 +188,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 				this.client.send(data);
 			}
 
-			this.post("pushMessage", data); // send back to sender
-			this.messages.push(data);
+			this.pushLocalMessage(data);
 		} catch (err) {
 			const message = err instanceof Error ? err.message : "Erreur envoi message";
 			vscode.window.showErrorMessage(message);
@@ -190,32 +196,25 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		}
 	}
 
-	private handlePeerEvent = (event: ServerEvent | ClientEvent): void => {
+	private handleSocketEvent = (event: SocketEvent): void => {
 		switch (event.type) {
-			case "reconnecting":
-				logger.info("Reconnecting...");
-				break;
-			case "connected":
-				this.post("peerConnected", { name: "Host" });
-				break;
-			case "disconnected":
-				this.post("peerDisconnected", { name: "Host" });
-				break;
-			case "client_connected":
-				this.post("peerConnected", { name: event.name });
-				break;
-			case "client_disconnected":
-				logger.info(`Client disconnected: ${event.name}`);
-				this.post(this.server?.isClientConnected() ? "peerConnected" : "peerDisconnected", { name: event.name });
-				break;
 			case "message":
-				logger.info(`Message from ${event.data.author}: ${event.data.text}`);
-				this.post("pushMessage", event.data);
-				this.messages.push(event.data);
+				if (isChatMessage(event.data)) {
+					logger.info(`Message from ${event.data.author}: ${event.data.text}`);
+				} else {
+					logger.info(`Presence ${event.data.event} from ${event.data.author}`);
+				}
 
-				if (this.isNotificationActive()) {
+				this.pushLocalMessage(event.data);
+
+				if (isChatMessage(event.data) && this.isNotificationActive()) {
 					this.notify(event.data.author);
 				}
+				break;
+			case "list":
+				this.peers = event.peers;
+				this.remoteConnected = event.remoteConnected;
+				this.post("pushList", { peers: this.peers, remoteConnected: this.remoteConnected } satisfies IListPayload);
 				break;
 			case "error":
 				logger.error(`Error: ${event.message}`);
@@ -231,8 +230,13 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 	// WsServer (host)
 	// -------------------------
 
+	private pushLocalMessage(data: MessageData): void {
+		this.post("pushMessage", data);
+		this.messages.push(data);
+	}
+
 	private startServer(hostName: string): void {
-		this.server = new WsServer(hostName, this.handlePeerEvent);
+		this.server = new WsServer(hostName, this.handleSocketEvent);
 
 		const port = this.getPort();
 
@@ -252,9 +256,8 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 	// -------------------------
 
 	private connectClient(clientName: string, ip: string, port: number): void {
-		this.client = new WsClient(clientName, ip, port, this.handlePeerEvent);
-
-		this.client.connect(ip, port);
+		this.client = new WsClient(clientName, ip, port, this.handleSocketEvent);
+		this.client.connect();
 	}
 
 	// -------------------------
@@ -272,6 +275,8 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 		this.client = null;
 		this.loginData = null;
 		this.messages = [];
+		this.peers = [];
+		this.remoteConnected = false;
 	}
 }
 

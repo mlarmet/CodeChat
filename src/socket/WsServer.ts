@@ -1,28 +1,16 @@
 import { IncomingMessage } from "http";
 import { WebSocket, WebSocketServer } from "ws";
 
-export type ServerEvent =
-	| { type: "client_connected"; name: string }
-	| { type: "client_disconnected"; name: string }
-	| { type: "message"; data: IMessageData }
-	| { type: "error"; message: string };
-
-// Payload échangés sur le wire
-type WireMessage = { kind: "handshake"; name: string } | { kind: "chat"; data: IMessageData };
-
-interface ConnectedClient {
-	ws: WebSocket;
-	name: string;
-}
+import { createPeer, hasOnlineGuest, HOST_PEER_ID, parseWire, presenceMessage } from "./protocol.js";
 
 export class WsServer {
 	private wss: WebSocketServer | null = null;
-	private clients = new Map<WebSocket, ConnectedClient>();
-	private hostName: string;
-	private onEvent: (event: ServerEvent) => void;
+	private readonly peers = new Map<string, PeerInfo>();
+	private readonly sockets = new Map<string, WebSocket>();
+	private readonly onEvent: (event: SocketEvent) => void;
 
-	constructor(hostName: string, onEvent: (event: ServerEvent) => void) {
-		this.hostName = hostName;
+	constructor(hostName: string, onEvent: (event: SocketEvent) => void) {
+		this.peers.set(HOST_PEER_ID, createPeer(HOST_PEER_ID, hostName, true, "online"));
 		this.onEvent = onEvent;
 	}
 
@@ -32,48 +20,10 @@ export class WsServer {
 		}
 
 		this.wss = new WebSocketServer({ port });
+		this.notifyList();
 
 		this.wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
-			let clientName = "Unknown";
-			let isRegistered = false;
-
-			ws.on("message", (raw) => {
-				let msg: WireMessage;
-
-				try {
-					msg = JSON.parse(raw.toString()) as WireMessage;
-				} catch {
-					return;
-				}
-
-				if (msg.kind === "handshake") {
-					if (isRegistered) {
-						return;
-					}
-
-					clientName = msg.name;
-					isRegistered = true;
-					this.clients.set(ws, { ws, name: clientName });
-					this.onEvent({ type: "client_connected", name: clientName });
-					return;
-				}
-
-				if (msg.kind === "chat" && isRegistered) {
-					this.broadcast(msg.data, ws);
-					this.onEvent({ type: "message", data: msg.data });
-				}
-			});
-
-			ws.on("close", () => {
-				if (isRegistered) {
-					this.clients.delete(ws);
-					this.onEvent({ type: "client_disconnected", name: clientName });
-				}
-			});
-
-			ws.on("error", (err) => {
-				this.onEvent({ type: "error", message: err.message });
-			});
+			this.bindSocket(ws);
 		});
 
 		this.wss.on("error", (err) => {
@@ -81,49 +31,119 @@ export class WsServer {
 		});
 	}
 
-	/** Diffuse un message de l'host à tous les clients connectés. */
-	send(data: IMessageData): void {
-		if (this.broadcast(data) === 0) {
+	send(data: Extract<MessageData, { type: "message" }>): void {
+		if (!hasOnlineGuest(this.list())) {
 			throw new Error("No client connected");
 		}
-	}
 
-	/** Nom de l'host (utile pour l'affichage côté panel) */
-	getHostName(): string {
-		return this.hostName;
-	}
-
-	isClientConnected(): boolean {
-		return this.clients.size > 0;
-	}
-
-	getClientName(): string | null {
-		return this.clients.values().next().value?.name ?? null;
+		this.broadcast({ kind: "chat", data });
 	}
 
 	stop(): void {
-		for (const { ws } of this.clients.values()) {
-			ws.close();
+		for (const ws of this.sockets.values()) {
+			ws.close(1001, "Host left");
 		}
-		this.clients.clear();
+		this.sockets.clear();
 		this.wss?.close();
 		this.wss = null;
 	}
 
-	private broadcast(data: IMessageData, excludedClient?: WebSocket): number {
-		const message: WireMessage = { kind: "chat", data };
-		const raw = JSON.stringify(message);
-		let recipientCount = 0;
+	private list(): PeerInfo[] {
+		return [...this.peers.values()];
+	}
 
-		for (const ws of this.clients.keys()) {
-			if (ws === excludedClient || ws.readyState !== WebSocket.OPEN) {
-				continue;
+	private bindSocket(ws: WebSocket): void {
+		let peerId: string | null = null;
+
+		ws.on("message", (raw) => {
+			const msg = parseWire(raw.toString());
+			if (!msg) {
+				return;
 			}
 
-			ws.send(raw);
-			recipientCount++;
+			if (msg.kind === "hello") {
+				if (!peerId) {
+					peerId = this.registerClient(ws, msg.clientId, msg.name);
+				}
+				return;
+			}
+
+			if (peerId && msg.kind === "chat") {
+				this.broadcast({ kind: "chat", data: msg.data }, peerId);
+				this.onEvent({ type: "message", data: msg.data });
+			}
+		});
+
+		ws.on("close", () => {
+			if (peerId && this.sockets.get(peerId) === ws) {
+				this.unregisterClient(peerId);
+			}
+		});
+
+		ws.on("error", (err) => {
+			this.onEvent({ type: "error", message: err.message });
+		});
+	}
+
+	private registerClient(ws: WebSocket, clientId: string, name: string): string {
+		const previousSocket = this.sockets.get(clientId);
+		const alreadyOnline = previousSocket || this.peers.get(clientId)?.status === "online";
+
+		if (previousSocket && previousSocket !== ws) {
+			previousSocket.close(4000, "Replaced by new connection");
 		}
 
-		return recipientCount;
+		const peer = createPeer(clientId, name, false, "online");
+		this.peers.set(clientId, peer);
+		this.sockets.set(clientId, ws);
+
+		this.sendTo(ws, { kind: "welcome", self: peer, peers: this.list() });
+
+		if (!alreadyOnline) {
+			const datetime = new Date().toISOString();
+			this.broadcast({ kind: "presence", event: "join", peer, datetime }, clientId);
+			this.onEvent({ type: "message", data: presenceMessage(peer, "join", datetime) });
+		}
+
+		this.notifyList();
+		return clientId;
+	}
+
+	private unregisterClient(peerId: string): void {
+		const peer = this.peers.get(peerId);
+		if (!peer) {
+			return;
+		}
+
+		this.sockets.delete(peerId);
+		const offlinePeer: PeerInfo = { ...peer, status: "offline" };
+		this.peers.set(peerId, offlinePeer);
+
+		const datetime = new Date().toISOString();
+		this.broadcast({ kind: "presence", event: "leave", peer: offlinePeer, datetime });
+		this.onEvent({ type: "message", data: presenceMessage(offlinePeer, "leave", datetime) });
+		this.notifyList();
+	}
+
+	private notifyList(): void {
+		const peers = this.list();
+		this.broadcast({ kind: "list", peers });
+		this.onEvent({ type: "list", peers, remoteConnected: hasOnlineGuest(peers) });
+	}
+
+	private broadcast(message: WireMessage, excludedPeerId?: string): void {
+		const raw = JSON.stringify(message);
+
+		for (const [id, ws] of this.sockets) {
+			if (id !== excludedPeerId && ws.readyState === WebSocket.OPEN) {
+				ws.send(raw);
+			}
+		}
+	}
+
+	private sendTo(ws: WebSocket, message: WireMessage): void {
+		if (ws.readyState === WebSocket.OPEN) {
+			ws.send(JSON.stringify(message));
+		}
 	}
 }

@@ -4,6 +4,7 @@
 	"description": "Local chat with another VSCode",
 	"version": "0.1.0",
 	"publisher": "mlarmet",
+	"private": true,
 	"engines": {
 		"vscode": "^1.110.0"
 	},
